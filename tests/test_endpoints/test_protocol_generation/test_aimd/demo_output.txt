@@ -1,0 +1,70 @@
+# 合成金三角形纳米片的实验协议
+
+**Objective:** 合成具有特定尺寸和形状的金三角形纳米片，用于光学和催化应用研究。
+
+## Basic Information
+
+Experimenter Name: {{var|experimenter_name}}
+Experiment Time: {{var|experiment_time}}
+Seed Solution Volume: {{var|seed_solution_volume}} mL
+Growth Solution Volume: {{var|growth_solution_volume}} mL
+Reaction Time: {{var|reaction_time}} minutes
+Precipitation Time: {{var|precipitation_time}} hours
+Final Solution Color: {{var|final_solution_color}}
+
+## Experimental Steps
+
+{{step|seed_solution_preparation,1}} 种子溶液的合成.
+
+Add 50 μL of HAuCl4 (20 mM) to 4.75 mL DI water.
+Add 100 μL of sodium citrate solution (10 mM).
+Note: Avoid storing the mixture above 35°C, as sodium citrate may reduce Au³+ to unwanted gold nanoparticles. Store in a 3-8°C refrigerator after addition.
+Add 100 μL of NaBH4 (0.1 M) solution under vigorous stirring.
+Note: NaBH4 powder should be dissolved in cold water (3-8°C) to prepare 0.1 M solution. Some experimenters suggest letting freshly prepared NaBH4 solution stand for 20 minutes in a 3-8°C refrigerator before use.
+Stir for 2 minutes.
+The mixture should change from yellow to brown, indicating seed solution formation.
+Let the seed solution sit at room temperature for 2 hours.
+Note: This step is for NaBH4 decomposition. Keep the seed solution at 25-30°C for at least 2 hours.
+
+{{step|growth_solution_preparation,2}} 生长溶液的合成.
+
+Place 108 mL of CTAB (0.025 M) solution in a container.
+Note: CTAB powder usually dissolves at higher temperatures, such as 60°C. Ensure the CTAB solution cools to room temperature before proceeding.
+Add 1.5 mL of HAuCl4 (20 mM) to the CTAB solution while gently shaking.
+While shaking, add 600 μL of 0.1 M NaOH solution.
+Add 54 μL of KI (0.1 M), continue gentle shaking.
+Finally, add 600 μL of 0.1 M AA (ascorbic acid) solution while shaking.
+Note: Some experimenters consider continuous shaking during steps b-e crucial.
+The solution should change from yellow to colorless.
+Note: If the final solution does not turn colorless (e.g., appears pale pink), discard it and repeat steps a-f.
+
+{{step|triangle_nanostructure_synthesis,3}} 三角形金纳米片的合成.
+
+Add 100 μL of seed solution (from step 1) to 900 μL of growth solution (from step 2).
+Gently shake for 3 seconds.
+Add 9 mL of growth solution to the mixture.
+Note: Alternatively, you can add 1 mL of the mixture from step b to 9 mL of growth solution.
+Shake the combined mixture for 4 seconds.
+Mix with 92 mL of growth solution.
+Note: The 92 mL mentioned in the literature may be a printing error, as the remaining growth solution is approximately 98 mL. Using either 92 mL or 98 mL of growth solution is acceptable in this step.
+Gently shake the final mixture for 6 seconds.
+Let the solution sit for 30 minutes.
+Note: During this period, avoid moving the bottle. If the ambient temperature is below 20°C, you can gently place the bottle in a 30°C oven to prevent CTAB precipitation.
+The solution color should deepen to purple, indicating the formation of gold nanosheets.
+Note: The deep purple color from this step comes from approximately 10 nm spherical gold nanoparticles, not triangular nanosheets.
+Let the nanosheets precipitate for 24 hours.
+Note: The optimal precipitation time is 24-48 hours. Less than 24 hours will result in low nanosheet yield, while more than 48 hours may introduce impurities like spherical nanoparticles.
+Carefully pour off the supernatant after the nanosheets have precipitated.
+Note: Be careful when pouring off the supernatant to avoid disturbing the precipitate. Nanosheets often adhere to the bottle walls, forming a nearly invisible thin layer that becomes visible only after all the supernatant has been removed.
+Resuspend the nanosheet precipitate in 10 mL DI water.
+Note: For long-term storage, it is recommended to store the nanosheets in 10-25 mM CTAB solution to prevent further growth.
+The final solution should appear green.
+Note: If the solution does not appear green (e.g., appears pale purple or pink), restart the entire process.
+
+{{check|solution_color_check,1}} 溶液颜色检查.
+
+Before proceeding, ensure that the solution has turned colorless (for growth solution) and green (for final solution).
+
+{{check|precipitation_check,2}} 沉淀检查.
+
+Before proceeding, ensure that the nanosheets have precipitated properly and the supernatant has been carefully poured off.

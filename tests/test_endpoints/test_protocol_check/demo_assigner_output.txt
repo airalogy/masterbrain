@@ -1,0 +1,106 @@
+from airalogy.assigner import (
+    AssignerBase,
+    AssignerMode,
+    AssignerResult,
+    assigner,
+)
+
+
+class Assigner(AssignerBase):
+    @assigner(
+        assigned_fields=["hauc14_volume"],
+        dependent_fields=["ctab_volume"],
+        mode=AssignerMode.AUTO,
+    )
+    def assign_hauc14_volume(dependent_fields: dict) -> AssignerResult:
+        ctab_volume = dependent_fields["ctab_volume"]
+        hauc14_volume = ctab_volume * 0.0138889  # 1.5 mL in 108 mL CTAB solution
+        return AssignerResult(
+            success=True,
+            assigned_fields={"hauc14_volume": round(hauc14_volume, 2)},
+            error_message=None,
+        )
+
+    @assigner(
+        assigned_fields=["sodium_citrate_volume"],
+        dependent_fields=["ctab_volume"],
+        mode=AssignerMode.AUTO,
+    )
+    def assign_sodium_citrate_volume(dependent_fields: dict) -> AssignerResult:
+        ctab_volume = dependent_fields["ctab_volume"]
+        sodium_citrate_volume = ctab_volume * 0.00092593  # 100 μL in 108 mL CTAB solution
+        return AssignerResult(
+            success=True,
+            assigned_fields={"sodium_citrate_volume": round(sodium_citrate_volume, 2)},
+            error_message=None,
+        )
+
+    @assigner(
+        assigned_fields=["nabh4_volume"],
+        dependent_fields=["ctab_volume"],
+        mode=AssignerMode.AUTO,
+    )
+    def assign_nabh4_volume(dependent_fields: dict) -> AssignerResult:
+        ctab_volume = dependent_fields["ctab_volume"]
+        nabh4_volume = ctab_volume * 0.00092593  # 100 μL in 108 mL CTAB solution
+        return AssignerResult(
+            success=True,
+            assigned_fields={"nabh4_volume": round(nabh4_volume, 2)},
+            error_message=None,
+        )
+
+    @assigner(
+        assigned_fields=["haucl4_volume_growth"],
+        dependent_fields=["growth_solution_volume_initial"],
+        mode=AssignerMode.AUTO,
+    )
+    def assign_haucl4_volume_growth(dependent_fields: dict) -> AssignerResult:
+        growth_solution_volume_initial = dependent_fields["growth_solution_volume_initial"]
+        haucl4_volume_growth = growth_solution_volume_initial * 0.0138889  # 1.5 mL in 108 mL CTAB solution
+        return AssignerResult(
+            success=True,
+            assigned_fields={"haucl4_volume_growth": round(haucl4_volume_growth, 2)},
+            error_message=None,
+        )
+
+    @assigner(
+        assigned_fields=["naoh_volume"],
+        dependent_fields=["growth_solution_volume_initial"],
+        mode=AssignerMode.AUTO,
+    )
+    def assign_naoh_volume(dependent_fields: dict) -> AssignerResult:
+        growth_solution_volume_initial = dependent_fields["growth_solution_volume_initial"]
+        naoh_volume = growth_solution_volume_initial * 0.0055556  # 600 μL in 108 mL CTAB solution
+        return AssignerResult(
+            success=True,
+            assigned_fields={"naoh_volume": round(naoh_volume, 2)},
+            error_message=None,
+        )
+
+    @assigner(
+        assigned_fields=["ki_volume"],
+        dependent_fields=["growth_solution_volume_initial"],
+        mode=AssignerMode.AUTO,
+    )
+    def assign_ki_volume(dependent_fields: dict) -> AssignerResult:
+        growth_solution_volume_initial = dependent_fields["growth_solution_volume_initial"]
+        ki_volume = growth_solution_volume_initial * 0.0005  # 54 μL in 108 mL CTAB solution
+        return AssignerResult(
+            success=True,
+            assigned_fields={"ki_volume": round(ki_volume, 2)},
+            error_message=None,
+        )
+
+    @assigner(
+        assigned_fields=["aa_volume"],
+        dependent_fields=["growth_solution_volume_initial"],
+        mode=AssignerMode.AUTO,
+    )
+    def assign_aa_volume(dependent_fields: dict) -> AssignerResult:
+        growth_solution_volume_initial = dependent_fields["growth_solution_volume_initial"]
+        aa_volume = growth_solution_volume_initial * 0.0055556  # 600 μL in 108 mL CTAB solution
+        return AssignerResult(
+            success=True,
+            assigned_fields={"aa_volume": round(aa_volume, 2)},
+            error_message=None,
+        )

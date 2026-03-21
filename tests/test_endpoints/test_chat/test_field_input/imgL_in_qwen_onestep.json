@@ -1,0 +1,147 @@
+{
+    "chat_id": "airalogy.chat.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "user_id": "zhangsan",
+    "model": {
+        "name": "qwen3.5-flash",
+        "temperature": 0,
+        "max_tokens": 1024
+    },
+    "image_mode": "one_step",
+    "history": [
+        {
+            "role": "user",
+            "content": "https://s21.ax1x.com/2025/03/11/pENzfZd.png"
+        }
+    ],
+    "scenario": {
+        "protocol_schema": {
+            "$defs": {
+                "ExperimentResult": {
+                    "description": "Model for tumor cell growth inhibition experiment result.",
+                    "properties": {
+                        "experiment_identifier": {
+                            "title": "Experiment Identifier",
+                            "type": "string"
+                        },
+                        "experiment_success": {
+                            "title": "Experiment Success",
+                            "type": "boolean"
+                        },
+                        "result_description": {
+                            "default": "",
+                            "title": "Result Description",
+                            "type": "string"
+                        }
+                    },
+                    "required": [
+                        "experiment_identifier",
+                        "experiment_success"
+                    ],
+                    "title": "ExperimentResult",
+                    "type": "object"
+                },
+                "TreatmentGroup": {
+                    "description": "Model for treatment group setup.",
+                    "properties": {
+                        "experiment_identifier": {
+                            "title": "Experiment Identifier",
+                            "type": "string"
+                        },
+                        "drug_name": {
+                            "title": "Drug Name",
+                            "type": "string"
+                        },
+                        "drug_concentration": {
+                            "title": "Drug Concentration",
+                            "type": "number"
+                        },
+                        "treatment_duration": {
+                            "title": "Treatment Duration",
+                            "type": "number"
+                        },
+                        "number_of_replicates": {
+                            "title": "Number Of Replicates",
+                            "type": "integer",
+                            "default": 3
+                        }
+                    },
+                    "required": [
+                        "experiment_identifier",
+                        "drug_name",
+                        "drug_concentration",
+                        "treatment_duration"
+                    ],
+                    "title": "TreatmentGroup",
+                    "type": "object"
+                }
+            },
+            "description": "Model for Drug Treatment on Tumor Cell Growth Inhibition Protocol",
+            "properties": {
+                "experimenter_name": {
+                    "airalogy_built_in_type": "UserName",
+                    "description": "The user name of the current Airalogy user",
+                    "title": "Experimenter Name",
+                    "type": "string"
+                },
+                "experiment_time": {
+                    "airalogy_built_in_type": "CurrentTime",
+                    "description": "The current time. The timezone is based on the user's browser.",
+                    "format": "date-time",
+                    "title": "Experiment Time",
+                    "type": "string"
+                },
+                "cell_line_name": {
+                    "default": "HeLa",
+                    "title": "Cell Line Name",
+                    "type": "string"
+                },
+                "seeding_density": {
+                    "default": 5000,
+                    "title": "Seeding Density",
+                    "type": "integer"
+                },
+                "adhesion_time": {
+                    "default": 12,
+                    "title": "Adhesion Time",
+                    "type": "number"
+                },
+                "drug_name": {
+                    "title": "Drug Name",
+                    "type": "string"
+                },
+                "drug_concentration": {
+                    "title": "Drug Concentration",
+                    "type": "number"
+                },
+                "treatment_duration": {
+                    "default": 24,
+                    "title": "Treatment Duration",
+                    "type": "number"
+                },
+                "control_group_od": {
+                    "title": "Control Group Od",
+                    "type": "number"
+                },
+                "treatment_group_od": {
+                    "title": "Treatment Group Od",
+                    "type": "number"
+                },
+                "inhibition_rate": {
+                    "title": "Inhibition Rate",
+                    "type": "number"
+                }
+            },
+            "required": [
+                "experimenter_name",
+                "experiment_time",
+                "drug_name",
+                "drug_concentration",
+                "control_group_od",
+                "treatment_group_od",
+                "inhibition_rate"
+            ],
+            "title": "VarModel",
+            "type": "object"
+        }
+    }
+}

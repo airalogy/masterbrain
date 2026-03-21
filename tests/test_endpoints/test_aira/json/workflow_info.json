@@ -1,0 +1,33 @@
+{
+    "id": "cnt_dispersion",
+    "title": "Workflow for a carbon nanotube dispersion study",
+    "protocols": [
+        {
+            "protocol_index": 1,
+            "protocol_name": "Preparation of dispersion solution from carbon nanotube powder",
+            "airalogy_protocol_id": "airalogy.id.lab.airalogy.project.public_protocols.protocol.cnt_powder.v.0.0.1"
+        },
+        {
+            "protocol_index": 2,
+            "protocol_name": "Ultrasonic dispersion of carbon nanotube solution",
+            "airalogy_protocol_id": "airalogy.id.lab.airalogy.project.public_protocols.protocol.cnt_ultrasound.v.0.0.1"
+        },
+        {
+            "protocol_index": 3,
+            "protocol_name": "Preparation of low-concentration carbon nanotube dispersion solution from high-concentration solution",
+            "airalogy_protocol_id": "airalogy.id.lab.airalogy.project.public_protocols.protocol.cnt_dilution.v.0.0.1"
+        },
+        {
+            "protocol_index": 4,
+            "protocol_name": "Characterization of carbon nanotube dispersion",
+            "airalogy_protocol_id": "airalogy.id.lab.airalogy.project.public_protocols.protocol.cnt_characterization.v.0.0.1"
+        }
+    ],
+    "edges": [
+        "1 -> 2",
+        "2 <-> 4",
+        "4 -> 3",
+        "3 -> 2"
+    ],
+    "logic": "1. The entire dispersion process must occur within a solution system, and the preparation of the dispersion from solid powder can only be the first step of the experiment: Protocol 1 must be the starting point of the Workflow.\n2. Every dispersion system must go through the stages of preparation, ultrasonication, and characterization: a Protocol Path must include at least one instance of (Protocol 1 -> Protocol 2 -> Protocol 4), and this sequence is irreversible.\n3. Based on the characterization results, it is determined whether: 1. The sample needs to be re-sonicated (Protocol 4 -> Protocol 2), or 2. The dispersion solution needs to be further diluted before sonication (Protocol 4 -> Protocol 3 -> Protocol 2). After repeating either of these two paths, characterization (Protocol 4) must be performed again to confirm the subsequent results. These two paths can be iteratively followed based on the outcomes of Protocol 4.\n4. The characterization process (Protocol 4), as the only quality control step in the experiment, can appear in the middle of the steps but must always be the final step in a Protocol Path.\n5. When the characterization results (Protocol 4) meet the research goal, the Workflow can be terminated.\n"
+}

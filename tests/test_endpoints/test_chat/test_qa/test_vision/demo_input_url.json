@@ -1,0 +1,29 @@
+{
+  "chat_id": "demo_vision_chat_001",
+  "user_id": "demo_user_456",
+  "model": "qwen3.5-flash",
+  "history": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "What do you see in this image? Please describe in detail."
+        },
+        {
+          "type": "image_url",
+          "image_url": {
+            "url": "https://gips1.baidu.com/it/u=993917756,850340855&fm=3042&app=3042&f=JPEG&wm=1,baiduai3,0,0,13,9&wmo=5,5&w=1152&h=864"
+          }
+        }
+      ]
+    }
+  ],
+  "scenario": {
+    "protocol_schema": {
+      "type": "image_analysis",
+      "format": "detailed_description"
+    },
+    "context": "general_vision_analysis"
+  }
+}

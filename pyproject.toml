@@ -1,0 +1,35 @@
+[project]
+name = "masterbrain"
+version = "0.7.0"
+authors = [{ name = "Airalogy MasterBrain Team" }]
+description = "Airalogy MasterBrain"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.13"
+classifiers = ["Programming Language :: Python :: 3"]
+dependencies = [
+    "python-dotenv>=1.0.1,<2",
+    "langchain>=0.2.7,<1",
+    "langchain-openai<1",
+    "fastapi>=0.112.2,<1",
+    "pydantic>=2.8.2,<3",
+    "uvicorn>=0.30.0,<1",
+    "openai>=1.102.0",
+    "dashscope>=1.25.2",
+    "tavily>=1.1.0",
+    "httpx>=0.27.0",
+    "langchain-core>=0.2.0,<1",
+]
+
+
+[build-system]
+requires = ["uv_build>=0.8.8,<0.9.0"]
+build-backend = "uv_build"
+
+
+[[tool.uv.index]]
+url = "https://mirrors.aliyun.com/pypi/simple/"
+default = true
+
+[dependency-groups]
+dev = ["pytest>=8.4.1", "pytest-asyncio>=1.1.0"]

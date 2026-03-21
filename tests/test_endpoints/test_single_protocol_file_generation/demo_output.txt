@@ -1,0 +1,180 @@
+# Airalogy Protocol: 合成金三角形纳米片
+
+## 实验基本信息
+
+实验标题: {{var|experiment_title: str = "合成金三角形纳米片"}}
+实验人员姓名: {{var|experimenter_name: UserName}}
+实验日期: {{var|experiment_date: date}}
+备注说明: {{var|notes: AiralogyMarkdown}}
+
+## 第一部分：种子溶液的合成
+
+{{step|seed_solution}} 种子溶液合成。
+
+1.  **配制容器准备**:
+    向容器中量取 {{var|seed_diy_water_vol: float = 4.75}} mL 去离子水（DI 水）。
+
+2.  **加入金前驱体**:
+    加入 {{var|seed_hacl_vol: float = 0.05}} mL 的 HAuCl4（20 mM）。
+
+3.  **加入还原剂/稳定剂**:
+    再加入 {{var|seed_citrate_vol: float = 0.1}} mL 的柠檬酸钠溶液（10 mM）。
+
+    {{check|check_seed_color}} 注意：避免将混合物储存在高于 35℃的环境中，因为柠檬酸盐可能会将 Au³⁺还原为不需要的金纳米颗粒。建议在加入后将溶液放入 3-8℃的冰箱中冷却。
+
+4.  **加入硼氢化钠**:
+    在剧烈搅拌下，制备并加入 {{var|seed_nabh4_vol: float = 0.1}} mL NaBH4（0.1 M）溶液。
+
+    {{check|check_na_bh4_preparation}} 注意：NaBH4 粉末应溶解在冷水（3-8℃）中制备 0.1 M 溶液。部分实验者建议在使用前将新鲜配制的 NaBH4 溶液在 3-8℃冰箱中静置 20 分钟。
+
+5.  **反应与观察**:
+    持续搅拌 {{var|seed_stir_time: float = 2}} min。
+
+    混合物应从黄色变为棕色，表示种子溶液的形成。记录实际颜色变化：{{var|seed_final_color_obs: str = "黄色变棕色"}}。
+
+    将种子溶液在室温下静置 {{var|seed_rest_time: float = 2}} h。
+
+    {{check|check_seed_rest}} 注意：这一步是为了 NaBH4 分解。保持种子溶液在 25-30℃之间静置至少 2 小时。
+
+## 第二部分：生长溶液的合成
+
+{{step|growth_solution}} 生长溶液合成。
+
+1.  **配制 CTAB 溶液**:
+    将 {{var|grow_ctab_vol: float = 108}} mL 的 CTAB（0.025 M）溶液置于容器中。
+
+    {{check|check_ctab_temp}} 注意：CTAB 粉末通常在较高温度下溶解，如 60℃。确保 CTAB 溶液冷却至室温后再继续操作。
+
+2.  **添加组分**:
+    加入 {{var|grow_hacl_vol: float = 1.5}} mL HAuCl4（20 mM）至 CTAB 溶液中，同时轻轻摇动。
+
+    轻轻摇动的同时加入 {{var|grow_naoh_vol: float = 0.6}} mL 0.1 M NaOH 溶液。
+
+    加入 {{var|grow_ki_vol: float = 0.054}} mL KI（0.1 M），继续轻轻摇动。
+
+    最后加入 {{var|grow_aa_vol: float = 0.6}} mL 0.1 M AA（抗坏血酸）溶液，轻轻摇动。
+
+    {{check|check_growth_color_change}} 注意：部分实验者认为在步骤 b-e 中持续摇动至关重要。
+    溶液应从黄色变为无色。
+
+    如果最终溶液未变成无色（例如出现淡粉色），请弃之，并重复步骤 a-f。记录当前状态：{{var|growth_solution_status: str = "无色"}}。
+
+## 第三部分：三角形金纳米片的合成
+
+{{step|nanosheet_synthesis}} 合成步骤。
+
+1.  **混合种子与生长液**:
+    注意：接下来的步骤中，时间的精确性非常重要。
+
+    将 {{var|mix_seed_added: float = 0.1}} mL 的种子溶液（来自 {{ref_step|seed_solution}}）与 {{var|mix_initial_growth: float = 0.9}} mL 的生长溶液（来自 {{ref_step|growth_solution}}）混合。
+
+    轻轻摇动 {{var|mix_shake_time_1: float = 3}} s。
+
+    向混合物中加入 {{var|mix_add_growth_1: float = 9}} mL 生长溶液。
+
+    或者，可以将上述 1 mL 混合物加入 9 mL 生长溶液中。
+
+    摇动组合后的混合物 {{var|mix_shake_time_2: float = 4}} s。
+
+    将其与 {{var|mix_add_growth_2: float = 92}} mL 生长溶液混合。
+
+    {{check|check_growth_total_vol}} 注意：文献中提到的 92 mL 可能是一个打印错误，因为剩余的生长溶液大约为 98 mL。无论如何，在此步骤中使用 92 mL 或 98 mL 的生长溶液都是可以接受的。
+
+    轻轻摇动最终的混合物 {{var|mix_shake_time_3: float = 6}} s。
+
+2.  **静置与沉淀**:
+    让溶液静置 {{var|rest_before_collected: float = 30}} min。
+
+    {{check|check_temp_condition}} 注意：在此期间，避免移动瓶子。如果环境温度低于 20℃，可以将瓶子轻轻放入 30℃的烤箱中，以防止 CTAB 沉淀。
+
+    溶液颜色应加深为紫色，表明金纳米片的形成。记录颜色：{{var|synthesis_intermediate_color: str = "紫色"}}。
+
+    注意：步骤 h 中的深紫色来自于大约 10 nm 的球形金纳米颗粒，而非三角形纳米片。
+
+    让纳米片沉淀 {{var|precipitation_time: float = 24}} h。
+
+    {{check|check_precipitation_optimal}} 注意：最佳沉淀时间为 24-48 小时。少于 24 小时会导致纳米片产量低，而超过 48 小时可能会引入球形纳米颗粒等杂质。
+
+3.  **收集与重悬**:
+    纳米片沉淀在烧瓶底部后，小心倒掉上清液。
+
+    {{check|check_clear_supernatant}} 注意：在倒出上清液时要小心，以避免扰动沉淀。纳米片常常附着在瓶壁上，形成一层几乎看不见的薄层，只有在完全倒出上清液后才会显现。
+
+    将纳米片沉淀重悬于 {{var|reconstitute_vol: float = 10}} mL 去离子水中。
+
+    {{check|check_final_product_state}} 注意：若需长时间存储，建议将纳米片放在 10-25 mM 的 CTAB 溶液中，以防止其进一步长大。
+
+    最终溶液应呈现绿色。记录最终外观：{{var|final_solution_color: str = "绿色"}}。
+
+    注意：如果溶液未呈现绿色（例如呈现淡紫色或粉红色），请重新开始整个过程。
+
+## 第四部分：合成结果与分析
+
+{{step|result_analysis}} 结果分析。
+
+1.  **形貌测量**:
+    使用电子显微镜或其他表征手段测量纳米片尺寸。
+
+    成功合成的标准参数：长度约 150 nm，厚度约 8 nm。
+
+    实测纳米片平均长度: {{var|measured_length_nm: float = 150}} nm
+
+    实测纳米片平均厚度: {{var|measured_thickness_nm: float = 8}} nm
+
+2.  **计算与分级**:
+
+    长径比（Aspect Ratio）: {{var|calculated_aspect_ratio: float}}
+
+    计算公式：长径比 = 实测长度 ÷ 实测厚度
+
+```assigner
+from airalogy.assigner import AssignerResult, assigner
+
+@assigner(
+    assigned_fields=["calculated_aspect_ratio"],
+    dependent_fields=["measured_length_nm", "measured_thickness_nm"],
+    mode="auto",
+)
+def calculate_aspect_ratio(dep: dict) -> AssignerResult:
+    length = dep["measured_length_nm"]
+    thickness = dep["measured_thickness_nm"]
+    if thickness == 0:
+        return AssignerResult(assigned_fields={"calculated_aspect_ratio": float('nan')})
+    ratio = length / thickness
+    return AssignerResult(
+        assigned_fields={"calculated_aspect_ratio": round(ratio, 2)},
+    )
+```
+
+    合成质量等级判定: {{var|quality_grading: str}}
+
+    判断标准：
+    - 长径比 ≥ 15 为优
+    - 10 ≤ 长径比 < 15 为良
+    - 长径比 < 10 为差
+
+```assigner
+from airalogy.assigner import AssignerResult, assigner
+
+@assigner(
+    assigned_fields=["quality_grading"],
+    dependent_fields=["calculated_aspect_ratio"],
+    mode="auto",
+)
+def evaluate_quality(dep: dict) -> AssignerResult:
+    ratio = dep["calculated_aspect_ratio"]
+    if ratio >= 15:
+        grade = "优"
+    elif ratio >= 10:
+        grade = "良"
+    else:
+        grade = "差"
+    return AssignerResult(
+        assigned_fields={"quality_grading": grade},
+    )
+```
+
+3.  **最终记录**:
+    确认合成目标达成：{{var|target_met: bool = True}}
+
+    完成总结：{{var|summary_note: AiralogyMarkdown}}

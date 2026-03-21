@@ -1,0 +1,14 @@
+{
+    "path_status": "waiting_for_research_strategy",
+    "steps": [
+        {
+            "step": "add_research_goal",
+            "path_index": 0,
+            "mode": "user",
+            "data": {
+                "thought": "",
+                "goal": "How do cells inherit genetic information?"
+            }
+        }
+    ]
+}

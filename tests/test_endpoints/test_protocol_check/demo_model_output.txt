@@ -1,0 +1,22 @@
+from datetime import date
+
+from pydantic import BaseModel
+
+
+class VarModel(BaseModel):
+    experimenter: str
+    experiment_date: date
+    hauc14_volume: float
+    sodium_citrate_volume: float
+    nabh4_volume: float
+    ctab_volume: float
+    haucl4_volume_growth: float
+    naoh_volume: float
+    ki_volume: float
+    aa_volume: float
+    seed_solution_volume: float
+    growth_solution_volume_initial: float
+    growth_solution_volume_final: float
+    settling_time: int
+    final_solution_volume: float
+    final_solution_color: str

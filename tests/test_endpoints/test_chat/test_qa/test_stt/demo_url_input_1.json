@@ -1,0 +1,5 @@
+{
+    "audio": "https://disk.sample.cat/samples/mp3/suzume_no_tojimari.mp3",
+    "input_type": "url",
+    "model": "qwen3-asr-flash"
+}

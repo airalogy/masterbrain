@@ -1,0 +1,21 @@
+{
+    "model": {
+        "name": "qwen3.5-flash",
+        "enable_thinking": false,
+        "enable_search": false
+    },
+    "messages": [
+        {
+            "role": "user",
+            "content": "What is machine learning?"
+        },
+        {
+            "role": "assistant",
+            "content": "Machine learning is a subset of artificial intelligence that enables computers to learn from data and improve their performance without being explicitly programmed."
+        },
+        {
+            "role": "user",
+            "content": "Can you give me an example?"
+        }
+    ]
+}

@@ -1,0 +1,227 @@
+# Bradford 法测定蛋白质浓度实验协议
+
+## 基本实验信息
+
+操作人员姓名：{{var|experimenter_name: UserName}}
+实验日期：{{var|experiment_date: date}}
+实验时间：{{var|experiment_time: CurrentTime}}
+实验备注：{{var|notes: AiralogyMarkdown}}
+
+## 一、标准曲线制备
+
+1. 准备 BSA 标准蛋白溶液，浓度为 {{var|bsa_stock_conc: float = 1.0}} mg/mL。
+2. 配制梯度体积的标准蛋白溶液加入 96 孔板，具体体积列表如下：{{var|standard_volumes_list: list[float] = [0.0, 2.0, 4.0, 6.0, 8.0, 10.0]}} μL。
+3. 用去离子水将每孔液体总量补齐至 {{var|total_standard_vol: float = 10.0}} μL，所需加水量根据上述梯度自动计算：{{var|standard_water_volumes: list[float]}} μL。
+
+```assigner
+from airalogy.assigner import AssignerResult, assigner
+
+@assigner(
+    assigned_fields=["standard_water_volumes"],
+    dependent_fields=["standard_volumes_list", "total_standard_vol"],
+    mode="auto",
+)
+def calc_water_volumes_for_standards(dep: dict) -> AssignerResult:
+    vols = dep["standard_volumes_list"]
+    total = dep["total_standard_vol"]
+    water_vols = [total - v for v in vols]
+    return AssignerResult(
+        assigned_fields={"standard_water_volumes": water_vols},
+    )
+```
+
+4. 每孔加入 {{var|bradford_reagent_vol: float = 200.0}} μL Bradford 试剂。
+5. 室温孵育 {{var|incubation_time: float = 5.0}} min。
+6. 在 {{var|wavelength_nm: int = 595}} nm 波长下测定各孔吸光度 (OD595)。
+7. 记录标准曲线各点的 OD 值：{{var|std_od_values: list[float]}}。
+
+## 二、样品测定与稀释
+
+1. 取未知样品溶液，记录稀释倍数：{{var|sample_dilution_factor: float = 1.0}}。
+2. 取稀释后样品 {{var|sample_volume: float = 10.0}} μL 加入 96 孔板。
+3. 加入 200 μL Bradford 试剂（同标准品），室温孵育 5 分钟。
+4. 进行平行实验（n ≥ 2），测定 OD595。
+5. 记录所有平行样品的 OD595 读数：{{var|sample_od_values: list[float]}}。
+
+## 三、数据分析
+
+根据标准曲线数据计算得到线性回归方程的参数：
+标准曲线斜率 (Slope): {{var|curve_slope: float}}
+标准曲线截距 (Intercept): {{var|curve_intercept: float}}
+
+1. 计算单个样品的蛋白浓度 (基于主样本读数或平均读数)，计算公式为：浓度 = (样品 OD595 - 截距) / 斜率。
+   这里我们使用平行样中的平均 OD 来计算基础浓度。首先需要计算平行样的平均 OD：{{var|avg_sample_od: float}}。
+
+```assigner
+from airalogy.assigner import AssignerResult, assigner
+
+@assigner(
+    assigned_fields=["avg_sample_od"],
+    dependent_fields=["sample_od_values"],
+    mode="auto",
+)
+def calc_avg_sample_od(dep: dict) -> AssignerResult:
+    ovals = dep["sample_od_values"]
+    if len(ovals) > 0:
+        avg = sum(ovals) / len(ovals)
+    else:
+        avg = 0.0
+    return AssignerResult(
+        assigned_fields={"avg_sample_od": avg},
+    )
+```
+
+根据平均 OD 值计算初步蛋白浓度：{{var|calc_concentration: float}} (单位 mg/mL)。
+
+```assigner
+from airalogy.assigner import AssignerResult, assigner
+
+@assigner(
+    assigned_fields=["calc_concentration"],
+    dependent_fields=["avg_sample_od", "curve_slope", "curve_intercept"],
+    mode="auto",
+)
+def calc_conc_from_od(dep: dict) -> AssignerResult:
+    od = dep["avg_sample_od"]
+    slope = dep["curve_slope"]
+    intercept = dep["curve_intercept"]
+    if abs(slope) < 1e-9:
+        conc = 0.0
+    else:
+        conc = (od - intercept) / slope
+    return AssignerResult(
+        assigned_fields={"calc_concentration": round(conc, 4)},
+    )
+```
+
+2. 考虑稀释倍数，计算原始样品蛋白浓度：原始浓度 = 计算浓度 × 稀释倍数。
+   原始样品蛋白浓度：{{var|original_concentration: float}} (单位 mg/mL)。
+
+```assigner
+from airalogy.assigner import AssignerResult, assigner
+
+@assigner(
+    assigned_fields=["original_concentration"],
+    dependent_fields=["calc_concentration", "sample_dilution_factor"],
+    mode="auto",
+)
+def calc_original_conc(dep: dict) -> AssignerResult:
+    conc = dep["calc_concentration"]
+    factor = dep["sample_dilution_factor"]
+    orig = conc * factor
+    return AssignerResult(
+        assigned_fields={"original_concentration": round(orig, 4)},
+    )
+```
+
+3. 针对平行实验数据 (n≥2)，计算浓度的平均值、标准偏差和变异系数。
+   首先将每个平行样品的 OD 转换为独立浓度值：{{var|individual_concentrations: list[float]}}。
+
+```assigner
+from airalogy.assigner import AssignerResult, assigner
+
+@assigner(
+    assigned_fields=["individual_concentrations"],
+    dependent_fields=["sample_od_values", "curve_slope", "curve_intercept"],
+    mode="auto",
+)
+def calc_individual_concs(dep: dict) -> AssignerResult:
+    ovals = dep["sample_od_values"]
+    slope = dep["curve_slope"]
+    intercept = dep["curve_intercept"]
+    factor = dep["sample_dilution_factor"]
+    
+    ind_concs = []
+    if abs(slope) < 1e-9:
+        ind_concs = [0.0] * len(ovals)
+    else:
+        ind_concs = [(o - intercept) / slope * factor for o in ovals]
+        
+    return AssignerResult(
+        assigned_fields={"individual_concentrations": ind_concs},
+    )
+```
+
+计算平均浓度：{{var|avg_concentration: float}} (单位 mg/mL)。
+
+```assigner
+from airalogy.assigner import AssignerResult, assigner
+import statistics
+
+@assigner(
+    assigned_fields=["avg_concentration"],
+    dependent_fields=["individual_concentrations"],
+    mode="auto",
+)
+def calc_avg_conc(dep: dict) -> AssignerResult:
+    vals = dep["individual_concentrations"]
+    if len(vals) == 0:
+        avg = 0.0
+    else:
+        avg = sum(vals) / len(vals)
+    return AssignerResult(
+        assigned_fields={"avg_concentration": round(avg, 4)},
+    )
+```
+
+计算标准偏差：{{var|std_dev: float}} (单位 mg/mL)。
+
+```assigner
+from airalogy.assigner import AssignerResult, assigner
+import statistics
+
+@assigner(
+    assigned_fields=["std_dev"],
+    dependent_fields=["individual_concentrations"],
+    mode="auto",
+)
+def calc_std_dev(dep: dict) -> AssignerResult:
+    vals = dep["individual_concentrations"]
+    if len(vals) < 2:
+        sd = 0.0
+    else:
+        sd = statistics.stdev(vals)
+    return AssignerResult(
+        assigned_fields={"std_dev": round(sd, 4)},
+    )
+```
+
+计算变异系数 CV = (标准偏差 / 平均浓度) × 100%：{{var|cv_percent: float}} (%)。
+
+```assigner
+from airalogy.assigner import AssignerResult, assigner
+
+@assigner(
+    assigned_fields=["cv_percent"],
+    dependent_fields=["std_dev", "avg_concentration"],
+    mode="auto",
+)
+def calc_cv(dep: dict) -> AssignerResult:
+    sd = dep["std_dev"]
+    avg = dep["avg_concentration"]
+    if abs(avg) < 1e-9:
+        cv = 0.0
+    else:
+        cv = (sd / avg) * 100
+    return AssignerResult(
+        assigned_fields={"cv_percent": round(cv, 2)},
+    )
+```
+
+4. 判断结果是否可接受：如果 CV < 10%，则视为有效：{{var|data_is_valid: bool}}。
+
+```assigner
+from airalogy.assigner import AssignerResult, assigner
+
+@assigner(
+    assigned_fields=["data_is_valid"],
+    dependent_fields=["cv_percent"],
+    mode="auto",
+)
+def check_data_validity(dep: dict) -> AssignerResult:
+    cv = dep["cv_percent"]
+    valid = cv < 10.0
+    return AssignerResult(
+        assigned_fields={"data_is_valid": valid},
+    )
+```

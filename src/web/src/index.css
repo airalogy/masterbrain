@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* ── Dark theme (default) ─────────────────────────────────── */
+html, html.dark {
+  background-color: #1e1e2e;
+  color: #cdd6f4;
+}
+
+/* ── Light theme overrides ────────────────────────────────── */
+html.light {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+/* Backgrounds */
+html.light .bg-gray-950 { background-color: #f8fafc; }
+html.light .bg-gray-900 { background-color: #f1f5f9; }
+html.light .bg-gray-800 { background-color: #e2e8f0; }
+html.light .bg-gray-700 { background-color: #cbd5e1; }
+html.light .bg-gray-600 { background-color: #94a3b8; }
+
+/* Texts */
+html.light .text-gray-200 { color: #0f172a; }
+html.light .text-gray-300 { color: #1e293b; }
+html.light .text-gray-400 { color: #334155; }
+html.light .text-gray-500 { color: #64748b; }
+html.light .text-gray-600 { color: #94a3b8; }
+
+/* Borders */
+html.light .border-gray-700 { border-color: #e2e8f0; }
+html.light .border-gray-600 { border-color: #cbd5e1; }
+html.light .border-blue-700 { border-color: #93c5fd; }
+
+/* Hover backgrounds */
+html.light .hover\:bg-gray-700:hover { background-color: #e2e8f0; }
+html.light .hover\:bg-gray-600:hover { background-color: #d1d5db; }
+html.light .hover\:text-gray-300:hover { color: #1e293b; }
+html.light .hover\:text-white:hover   { color: #0f172a; }
+
+/* Warning / yellow panels */
+html.light .bg-yellow-900    { background-color: #fef3c7; }
+html.light .border-yellow-600 { border-color: #d97706; }
+html.light .text-yellow-200  { color: #92400e; }
+html.light .text-yellow-300  { color: #b45309; }
+
+/* Input / textarea backgrounds in light mode */
+html.light input.bg-gray-900,
+html.light textarea.bg-gray-900 {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8;
+}
+
+/* Chat message overflow fix — prevent long words/code from breaking layout */
+.prose pre,
+.prose code {
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+/* AIMD preview in light mode */
+html.light .aimd-preview  { color: #334155; }
+html.light .aimd-h        { color: #4338ca; border-bottom-color: #e0e7ff; }
+html.light .aimd-step     { background: #dbeafe; border-left-color: #3b82f6; color: #1d4ed8; }
+html.light .aimd-var      { background: #d1fae5; border-color: #059669; color: #065f46; }
+html.light .aimd-para     { color: #334155; }
+html.light .aimd-code     { background: #f8fafc; border-color: #e2e8f0; color: #166534; }
+html.light .aimd-assigner { background: #fef9f0; border-color: #d97706; color: #92400e; }

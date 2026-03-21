@@ -1,0 +1,58 @@
+# Triangle-Shaped Gold Nanoplate Synthesis
+
+## Description
+
+This Airalogy protocol describes how to synthesize triangle-shaped gold nanoplates using a seed-mediated growth method.
+
+## Experimental Information
+
+Experimenter: {{var|experimenter}}
+Experiment Date: {{var|experiment_date}}
+
+## Experimental Steps
+
+{{step|prepare_seed_solution,1}} Prepare the seed solution.
+
+{{check|seed_solution_preparation_conditions}} Ensure the following conditions are met:
+- Add 4.75 mL of deionized water (DI water) to a container.
+- Add 50 μL of HAuCl4 (20 mM).
+- Add 100 μL of sodium citrate solution (10 mM).
+- Avoid storing the mixture above 35°C. Cool the mixture to 3-8°C if necessary.
+- Add 100 μL of freshly prepared NaBH4 (0.1 M) solution under vigorous stirring.
+- Stir continuously for 2 minutes until the color changes from yellow to brown.
+- Allow the seed solution to stand at room temperature for 2 hours.
+
+{{step|prepare_growth_solution,1}} Prepare the growth solution.
+
+{{check|growth_solution_preparation_conditions}} Ensure the following conditions are met:
+- Add 108 mL of CTAB (0.025 M) solution to a container.
+- Heat the CTAB solution to 60°C if necessary, then cool it to room temperature.
+- Add 1.5 mL of HAuCl4 (20 mM) and gently shake.
+- Add 600 μL of 0.1 M NaOH and gently shake.
+- Add 54 μL of KI (0.1 M) and continue gently shaking.
+- Finally, add 600 μL of 0.1 M ascorbic acid (AA) solution and gently shake.
+- The solution should change color from yellow to colorless. Discard and repeat steps if the final solution is not colorless.
+
+{{step|synthesize_triangle_nanoplates,1}} Synthesize triangle-shaped gold nanoplates.
+
+{{check|synthesis_conditions}} Ensure the following conditions are met:
+- Combine 100 μL of seed solution with 900 μL of growth solution.
+- Gently shake for 3 seconds.
+- Add 9 mL of growth solution to the mixture.
+- Alternatively, add 1 mL of the mixture to 9 mL of growth solution.
+- Shake the combined mixture for 4 seconds.
+- Mix with 92 mL (or 98 mL) of growth solution.
+- Gently shake the final mixture for 6 seconds.
+- Let the mixture stand undisturbed for 30 minutes.
+- If the ambient temperature is below 20°C, place the bottle in a 30°C oven to prevent CTAB precipitation.
+- The solution should deepen to a purple color, indicating the formation of gold nanoparticles.
+- Let the nanoplates settle for 24 hours.
+- Carefully decant the supernatant without disturbing the precipitate.
+- Resuspend the nanoplate precipitate in 10 mL of deionized water.
+- For long-term storage, keep the nanoplates in a 10-25 mM CTAB solution to prevent further growth.
+- The final solution should appear green.
+- If the solution is not green (e.g., pale purple or pink), start the process over.
+
+## Expected Results
+
+Successful synthesis should yield triangular nanoplates with lengths of approximately 150 nm and thicknesses of about 8 nm.

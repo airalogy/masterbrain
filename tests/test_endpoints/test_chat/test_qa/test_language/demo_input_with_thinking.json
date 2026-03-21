@@ -1,0 +1,13 @@
+{
+    "model": {
+        "name": "qwen3.5-flash",
+        "enable_thinking": true,
+        "enable_search": false
+    },
+    "messages": [
+        {
+            "role": "user",
+            "content": "What is 123 multiplied by 456? Please think step by step."
+        }
+    ]
+}

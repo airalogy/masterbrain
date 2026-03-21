@@ -1,0 +1,109 @@
+{
+    "path_status": "waiting_for_next_protocol",
+    "steps": [
+        {
+            "step": "add_research_goal",
+            "path_index": 0,
+            "mode": "user",
+            "data": {
+                "thought": "",
+                "goal": "Research how to use m-cresol as a solvent to disperse carbon nanotubes in order to achieve the maximum concentration of carbon nanotube bundles with an average tube diameter in the 20-30 nm range."
+            }
+        },
+        {
+            "step": "add_record",
+            "path_index": 1,
+            "mode": "user",
+            "data": {
+                "protocol_index": 1,
+                "airalogy_record_id": "airalogy.id.record.00000000-0000-0000-000000000000",
+                "record_data": {
+                    "airalogy_record_id": "airalogy.id.record.00000000-0000-0000-000000000000",
+                    "metadata": {
+                        "airalogy_protocol_id": "airalogy.id.lab.airalogy.project.public_protocols.protocol.cnt_powder.v.0.0.1"
+                    },
+                    "data": {
+                        "var": {
+                            "solvent_name": "m-Cresol",
+                            "dispersion_volume": 20.0,
+                            "dispersion_concentration": 1.0,
+                            "cnt_powder_mass": 20.0,
+                            "results": "Successfully prepared a carbon nanotube dispersion in m-Cresol at a concentration of 1.0 mg/mL."
+                        },
+                        "step": {
+                            "prepare_dispersion": {
+                                "checked": null,
+                                "annotation": ""
+                            },
+                            "record_results": {
+                                "checked": null,
+                                "annotation": ""
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "step": "add_record",
+            "path_index": 2,
+            "mode": "user",
+            "data": {
+                "protocol_index": 2,
+                "airalogy_record_id": "airalogy.id.record.11111111-1111-1111-111111111111",
+                "record_data": {
+                    "airalogy_record_id": "airalogy.id.record.11111111-1111-1111-111111111111",
+                    "metadata": {
+                        "airalogy_protocol_id": "airalogy.id.lab.airalogy.project.public_protocols.protocol.cnt_ultrasound.v.0.0.1"
+                    },
+                    "data": {
+                        "var": {
+                            "sonication_time": 30.0,
+                            "results": "Successful sonication."
+                        },
+                        "step": {
+                            "sonicate_dispersion": {
+                                "checked": null,
+                                "annotation": ""
+                            },
+                            "record_results": {
+                                "checked": null,
+                                "annotation": ""
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "step": "add_record",
+            "path_index": 3,
+            "mode": "user",
+            "data": {
+                "protocol_index": 4,
+                "airalogy_record_id": "airalogy.id.record.33333333-3333-3333-333333333333",
+                "record_data": {
+                    "airalogy_record_id": "airalogy.id.record.33333333-3333-3333-333333333333",
+                    "metadata": {
+                        "airalogy_protocol_id": "airalogy.id.lab.airalogy.project.public_protocols.protocol.cnt_ultrasound.v.0.0.1"
+                    },
+                    "data": {
+                        "var": {
+                            "bundle_diameter": 25.0
+                        },
+                        "step": {
+                            "characterize_by_sem": {
+                                "checked": null,
+                                "annotation": ""
+                            },
+                            "record_characterization_results": {
+                                "checked": null,
+                                "annotation": "After ultrasonic dispersion, the diameter reached 25 nm, which falls within the 20-30 nm range. The research goal has been achieved, and the next step should be to terminate the experiment."
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

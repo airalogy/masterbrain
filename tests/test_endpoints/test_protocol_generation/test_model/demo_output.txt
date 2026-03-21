@@ -1,0 +1,39 @@
+from pydantic import BaseModel, Field
+
+from airalogy.built_in_types import CurrentTime, UserName
+
+
+class VarModel(BaseModel):
+    experimenter: UserName
+    experiment_time: CurrentTime
+    seed_solution_volume_di_water: float = 4.75
+    hauchl4_concentration_seed: float = 20
+    hauchl4_volume_seed: float = 0.05
+    citrate_sodium_concentration_seed: float = 10
+    citrate_sodium_volume_seed: float = 0.1
+    nabh4_concentration_seed: float = 0.1
+    nabh4_volume_seed: float = 0.1
+    seed_solution_stir_time: float = 2
+    growth_solution_ctab_concentration: float = 0.025
+    growth_solution_ctab_volume: float = 108
+    hauchl4_concentration_growth: float = 20
+    hauchl4_volume_growth: float = 1.5
+    naoh_concentration_growth: float = 0.1
+    naoh_volume_growth: float = 0.6
+    ki_concentration_growth: float = 0.1
+    ki_volume_growth: float = 0.054
+    aa_concentration_growth: float = 0.1
+    aa_volume_growth: float = 0.6
+    seeds_volume_synthesis: float = 0.1
+    growth_solution_volume_synthesis: float = 0.9
+    initial_mixture_shake_time: float = 3
+    additional_growth_volume: float = 9
+    combined_mixture_shake_time: float = 4
+    full_growth_volume: float = 92
+    final_mixture_shake_time: float = 6
+    settle_time: float = 30
+    nanoplate_settle_time: float = 24
+    supernatant_removal_caution: bool = True
+    nanoplates_resuspension_volume: float = 10
+    long_term_storage_ctab_concentration: float = 10
+    final_color_check: bool = True

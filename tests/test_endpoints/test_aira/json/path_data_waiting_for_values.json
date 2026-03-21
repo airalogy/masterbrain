@@ -1,0 +1,24 @@
+{
+    "path_status": "waiting_for_initial_values_for_fields_in_next_protocol",
+    "steps": [
+        {
+            "step": "add_research_goal",
+            "path_index": 0,
+            "mode": "user",
+            "data": {
+                "thought": "",
+                "goal": "Research how to use m-cresol as a solvent to disperse carbon nanotubes in order to achieve the maximum concentration of carbon nanotube bundles with an average tube diameter in the 20-30 nm range."
+            }
+        },
+        {
+            "step": "add_next_protocol",
+            "path_index": 1,
+            "mode": "ai",
+            "data": {
+                "thought": "",
+                "end_path": false,
+                "protocol_index": 1
+            }
+        }
+    ]
+}

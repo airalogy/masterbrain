@@ -1,0 +1,33 @@
+{
+  "chat_id": "demo_vision_chat_001",
+  "user_id": "demo_user_456",
+  "model": "gpt-4o",
+  "history": [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "What do you see in this image? Please describe in detail."
+        },
+        {
+          "type": "image_url",
+          "image_url": {
+            "url": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+          }
+        }
+      ]
+    },
+    {
+      "role": "assistant",
+      "content": "The image is a uniform yellow square. It has no discernible patterns, textures, objects, or features; it is simply a solid color with a consistent shade of bright yellow throughout."
+    }
+  ],
+  "scenario": {
+    "protocol_schema": {
+      "type": "image_analysis",
+      "format": "detailed_description"
+    },
+    "context": "general_vision_analysis"
+  }
+}

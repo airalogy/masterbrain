@@ -1,0 +1,13 @@
+{
+    "model": {
+        "name": "qwen3.5-flash",
+        "enable_thinking": false,
+        "enable_search": false
+    },
+    "messages": [
+        {
+            "role": "user",
+            "content": "Who are you? Please introduce yourself."
+        }
+    ]
+}

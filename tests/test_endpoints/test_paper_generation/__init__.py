@@ -1,0 +1,2 @@
+"""Test paper generation module"""
+

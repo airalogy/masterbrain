@@ -1,0 +1,260 @@
+{
+  "chat_id": "airalogy.chat.xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "user_id": "zhangsan",
+  "model": {
+    "name": "qwen3.5-flash",
+    "temperature": 0,
+    "max_tokens": 512
+  },
+  "history": [
+    {
+      "role": "user",
+      "content": "forward_primer_volume是50；reverse_primer_volume是150。"
+    },
+    {
+      "role": "assistant",
+      "content": null,
+      "tool_calls": [
+        {
+          "id": "id_sf_d8be6afe-b874-4e4e-83c9-4e3c9d9c95e8",
+          "type": "function",
+          "function": {
+            "name": "slot_filling"
+          },
+          "arguments": "{\"operations\": [{\"operation\": \"update\", \"rf_name\": \"forward_primer_volume\", \"rf_value\": \"50\"}, {\"operation\": \"update\", \"rf_name\": \"reverse_primer_volume\", \"rf_value\": \"150\"}]}"
+        }
+      ]
+    }
+  ],
+  "scenario": {
+    "protocol_schema": {
+      "$defs": {
+        "ExperimentResult": {
+          "description": "Model for experiment result.",
+          "properties": {
+            "pcr_identifier": {
+              "title": "Pcr Identifier",
+              "type": "string"
+            },
+            "pcr_success": {
+              "title": "Pcr Success",
+              "type": "boolean"
+            },
+            "pcr_result_description": {
+              "default": "",
+              "title": "Pcr Result Description",
+              "type": "string"
+            }
+          },
+          "required": [
+            "pcr_identifier",
+            "pcr_success"
+          ],
+          "title": "ExperimentResult",
+          "type": "object"
+        },
+        "PcrDnaGroup": {
+          "description": "Model for `pcr_dna_group`.",
+          "properties": {
+            "pcr_identifier": {
+              "title": "Pcr Identifier",
+              "type": "string"
+            },
+            "forward_primer_sequence": {
+              "title": "Forward Primer Sequence",
+              "type": "string"
+            },
+            "reverse_primer_sequence": {
+              "title": "Reverse Primer Sequence",
+              "type": "string"
+            },
+            "template_dna_sequence": {
+              "title": "Template Dna Sequence",
+              "type": "string"
+            },
+            "template_dna_concentration": {
+              "title": "Template Dna Concentration",
+              "type": "number"
+            }
+          },
+          "required": [
+            "pcr_identifier",
+            "forward_primer_sequence",
+            "reverse_primer_sequence",
+            "template_dna_sequence",
+            "template_dna_concentration"
+          ],
+          "title": "PcrDnaGroup",
+          "type": "object"
+        }
+      },
+      "description": "RrModel for REMD.",
+      "properties": {
+        "user": {
+          "default": "",
+          "description": "The username of the user",
+          "title": "User",
+          "type": "string"
+        },
+        "current_time": {
+          "description": "The current time in the UTC timezone",
+          "format": "date-time",
+          "title": "Current Time",
+          "type": "string"
+        },
+        "conclusion": {
+          "default": "",
+          "description": "The conclusion of the research",
+          "title": "Conclusion",
+          "type": "string"
+        },
+        "pcr_dna_groups": {
+          "description": "The groups for different PCR reactions",
+          "items": {
+            "$ref": "#/$defs/PcrDnaGroup"
+          },
+          "title": "Pcr Dna Groups",
+          "type": "array"
+        },
+        "pcr_reaction_volume": {
+          "default": 50,
+          "description": "The total volume of a PCR reaction (uL)",
+          "title": "Pcr Reaction Volume",
+          "type": "number"
+        },
+        "template_dna_volume": {
+          "default": 1,
+          "description": "The volume of template DNA (uL) in a PCR reaction",
+          "title": "Template Dna Volume",
+          "type": "number"
+        },
+        "phanta_max_buffer_volume": {
+          "description": "The volume of Phanta Max Buffer (uL) in a PCR reaction",
+          "title": "Phanta Max Buffer Volume",
+          "type": "number"
+        },
+        "dntp_mix_volume": {
+          "default": "The volume of dNTP Mix (uL) in a PCR reaction",
+          "title": "Dntp Mix Volume",
+          "type": "number"
+        },
+        "forward_primer_volume": {
+          "description": "The volume of forward primer (uL) in a PCR reaction",
+          "title": "Forward Primer Volume",
+          "type": "number"
+        },
+        "reverse_primer_volume": {
+          "description": "The volume of reverse primer (uL) in a PCR reaction",
+          "title": "Reverse Primer Volume",
+          "type": "number"
+        },
+        "phanta_max_polymerase_volume": {
+          "description": "The volume of Phanta Max Polymerase (uL) in a PCR reaction",
+          "title": "Phanta Max Polymerase Volume",
+          "type": "number"
+        },
+        "ddh2o_volume": {
+          "description": "The volume of ddH2O (uL) in a PCR reaction",
+          "title": "Ddh2O Volume",
+          "type": "number"
+        },
+        "initial_denaturation_temperature": {
+          "default": 95,
+          "description": "Initial denaturation temperature (°C) for PCR program",
+          "title": "Initial Denaturation Temperature",
+          "type": "number"
+        },
+        "initial_denaturation_time": {
+          "default": "00:03:00",
+          "description": "Initial denaturation time for PCR program",
+          "format": "time",
+          "title": "Initial Denaturation Time",
+          "type": "string"
+        },
+        "pcr_cycle": {
+          "default": 35,
+          "description": "Number of PCR cycles for PCR program",
+          "title": "Pcr Cycle",
+          "type": "integer"
+        },
+        "denaturation_temperature": {
+          "default": 95,
+          "description": "Denaturation temperature (°C) for PCR program",
+          "title": "Denaturation Temperature",
+          "type": "number"
+        },
+        "denaturation_time": {
+          "default": "00:00:15",
+          "description": "Denaturation time for PCR program",
+          "format": "time",
+          "title": "Denaturation Time",
+          "type": "string"
+        },
+        "annealing_temperature": {
+          "description": "Annealing temperature (°C) for PCR program",
+          "title": "Annealing Temperature",
+          "type": "number"
+        },
+        "annealing_time": {
+          "default": "00:00:15",
+          "description": "Annealing time for PCR program",
+          "format": "time",
+          "title": "Annealing Time",
+          "type": "string"
+        },
+        "extension_temperature": {
+          "default": 72,
+          "description": "Extension temperature (°C) for PCR program",
+          "title": "Extension Temperature",
+          "type": "number"
+        },
+        "extension_time": {
+          "description": "Extension time for PCR program",
+          "format": "time",
+          "title": "Extension Time",
+          "type": "string"
+        },
+        "final_extension_temperature": {
+          "default": 72,
+          "description": "Final extension temperature (°C) for PCR program",
+          "title": "Final Extension Temperature",
+          "type": "number"
+        },
+        "final_extension_time": {
+          "default": "00:05:00",
+          "description": "Final extension time for PCR program",
+          "format": "time",
+          "title": "Final Extension Time",
+          "type": "string"
+        },
+        "experiment_result": {
+          "description": "The PCR results of each PCR reaction group.",
+          "items": {
+            "$ref": "#/$defs/ExperimentResult"
+          },
+          "title": "Experiment Result",
+          "type": "array"
+        },
+        "extra_experiment_result": {
+          "default": "",
+          "description": "If there are any extra results, please write them here.",
+          "title": "Extra Experiment Result",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pcr_dna_groups",
+        "phanta_max_buffer_volume",
+        "forward_primer_volume",
+        "reverse_primer_volume",
+        "phanta_max_polymerase_volume",
+        "ddh2o_volume",
+        "annealing_temperature",
+        "extension_time",
+        "experiment_result"
+      ],
+      "title": "RvModel",
+      "type": "object"
+    }
+  }
+}

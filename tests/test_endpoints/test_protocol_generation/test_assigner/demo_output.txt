@@ -1,0 +1,36 @@
+from airalogy.assigner import (
+    AssignerBase,
+    AssignerResult,
+    assigner,
+)
+
+
+class Assigner(AssignerBase):
+    @assigner(
+        assigned_fields=["growth_total_volume"],
+        dependent_fields=[
+            "growth_volume_ctab",
+            "growth_volume_haucl4",
+            "growth_volume_naoh",
+            "growth_volume_ki",
+            "growth_volume_aa",
+        ],
+        mode="auto",
+    )
+    @staticmethod
+    def calculate_growth_total_volume(dependent_data: dict) -> AssignerResult:
+        growth_volume_ctab = dependent_data["growth_volume_ctab"]
+        growth_volume_haucl4 = dependent_data["growth_volume_haucl4"]
+        growth_volume_naoh = dependent_data["growth_volume_naoh"]
+        growth_volume_ki = dependent_data["growth_volume_ki"]
+        growth_volume_aa = dependent_data["growth_volume_aa"]
+        growth_total_volume = (growth_volume_ctab + 
+                              growth_volume_haucl4 + 
+                              growth_volume_naoh + 
+                              growth_volume_ki + 
+                              growth_volume_aa)
+        return AssignerResult(
+            assigned_fields={
+                "growth_total_volume": round(growth_total_volume, 2),
+            },
+        )
