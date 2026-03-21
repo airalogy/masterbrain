@@ -191,12 +191,6 @@ After starting the service, you can access the API documentation at:
 - Default address: `http://127.0.0.1:8080/docs`
 - If you modified the Host and Port, please access the corresponding address
 
-## 🔍 Preview
-
-When you open the API documentation page, you'll see the following interface:
-
-![API Preview Interface](docs/images/preview.png)
-
 ## Citation
 
 If you use Airalogy Masterbrain in your research or project, or if this project has been helpful to your work, please cite the following paper:

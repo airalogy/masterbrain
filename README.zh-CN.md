@@ -191,12 +191,6 @@ Masterbrain API 提供以下主要功能模块：
 - 默认地址：`http://127.0.0.1:8080/docs`
 - 如果修改了 Host 或 Port，请访问对应地址
 
-## 预览
-
-打开 API 文档页面后，可以看到如下界面：
-
-![API 预览界面](docs/images/preview.png)
-
 ## 引用
 
 如果您在研究或项目中使用了 Airalogy Masterbrain，或本项目对您的工作有帮助，欢迎引用以下文献：
