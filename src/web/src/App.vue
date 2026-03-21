@@ -10,7 +10,7 @@ import type { PreviewState } from './types/index.ts';
 
 const leftOpen = ref(true);
 const rightOpen = ref(true);
-const theme = ref<Theme>('dark');
+const theme = ref<Theme>('light');
 
 provideTheme(theme);
 
@@ -80,9 +80,8 @@ function handleCreateFile(name: string, content: string) {
 </script>
 
 <template>
-  <div class="flex h-screen w-screen overflow-hidden bg-gray-950">
-    <!-- Left: File Manager -->
-    <div v-if="leftOpen" class="w-56 flex-shrink-0">
+  <div class="workspace-shell">
+    <div v-if="leftOpen" class="workspace-shell__sidebar">
       <FileManager
         :files="files"
         :folders="folders"
@@ -100,21 +99,17 @@ function handleCreateFile(name: string, content: string) {
     </div>
     <div
       v-else
-      class="w-8 flex-shrink-0 flex flex-col items-center py-3 gap-3 bg-gray-900 border-r border-gray-700"
+      class="workspace-shell__rail workspace-shell__rail--left"
     >
       <button
-        class="text-gray-400 hover:text-gray-200 text-base leading-none transition-colors"
+        class="workspace-shell__rail-button"
         title="Expand Files"
         @click="leftOpen = true"
       >›</button>
-      <span
-        class="text-gray-500 text-xs font-medium"
-        style="writing-mode: vertical-rl; transform: rotate(180deg)"
-      >Files</span>
+      <span class="workspace-shell__rail-label">Files</span>
     </div>
 
-    <!-- Middle: Editor + Preview -->
-    <div class="flex-1 min-w-0">
+    <div class="workspace-shell__main">
       <EditorPanel
         :active-file="activeFile"
         :preview-state="previewState"
@@ -126,8 +121,7 @@ function handleCreateFile(name: string, content: string) {
       />
     </div>
 
-    <!-- Right: Chat Panel -->
-    <div v-if="rightOpen" class="w-80 flex-shrink-0">
+    <div v-if="rightOpen" class="workspace-shell__chat">
       <ChatPanel
         :messages="messages"
         :is-streaming="isStreaming"
@@ -150,17 +144,147 @@ function handleCreateFile(name: string, content: string) {
     </div>
     <div
       v-else
-      class="w-8 flex-shrink-0 flex flex-col items-center py-3 gap-3 bg-gray-900 border-l border-gray-700"
+      class="workspace-shell__rail workspace-shell__rail--right"
     >
       <button
-        class="text-gray-400 hover:text-gray-200 text-base leading-none transition-colors"
+        class="workspace-shell__rail-button"
         title="Expand Chat"
         @click="rightOpen = true"
       >‹</button>
-      <span
-        class="text-gray-500 text-xs font-medium"
-        style="writing-mode: vertical-rl; transform: rotate(180deg)"
-      >Chat</span>
+      <span class="workspace-shell__rail-label">Chat</span>
     </div>
   </div>
 </template>
+
+<style scoped>
+.workspace-shell {
+  display: flex;
+  gap: 16px;
+  width: 100vw;
+  height: 100vh;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.workspace-shell__sidebar {
+  width: 288px;
+  flex-shrink: 0;
+  min-height: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--panel-bg);
+  backdrop-filter: blur(22px);
+  box-shadow: var(--shadow-md);
+}
+
+.workspace-shell__main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 28px;
+  overflow: hidden;
+  background: var(--panel-bg);
+  backdrop-filter: blur(22px);
+  box-shadow: var(--shadow-lg);
+}
+
+.workspace-shell__chat {
+  width: 420px;
+  flex-shrink: 0;
+  min-height: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  overflow: hidden;
+  background: var(--panel-bg);
+  backdrop-filter: blur(22px);
+  box-shadow: var(--shadow-md);
+}
+
+.workspace-shell__rail {
+  width: 52px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  background: var(--panel-bg);
+  backdrop-filter: blur(18px);
+  color: var(--text-muted);
+}
+
+.workspace-shell__rail-button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 999px;
+  background: var(--panel-subtle);
+  color: var(--text-secondary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.workspace-shell__rail-button:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.workspace-shell__rail-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+@media (max-width: 1280px) {
+  .workspace-shell__sidebar {
+    width: 248px;
+  }
+
+  .workspace-shell__chat {
+    width: 360px;
+  }
+}
+
+@media (max-width: 980px) {
+  .workspace-shell {
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .workspace-shell__sidebar,
+  .workspace-shell__chat,
+  .workspace-shell__main {
+    width: 100%;
+  }
+
+  .workspace-shell__sidebar,
+  .workspace-shell__chat {
+    min-height: 280px;
+  }
+
+  .workspace-shell__main {
+    min-height: 420px;
+  }
+
+  .workspace-shell__rail {
+    width: 100%;
+    height: 52px;
+    flex-direction: row;
+  }
+
+  .workspace-shell__rail-label {
+    writing-mode: horizontal-tb;
+    transform: none;
+  }
+}
+</style>

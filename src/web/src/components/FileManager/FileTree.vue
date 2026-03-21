@@ -81,55 +81,53 @@ function toggleFolder(folder: string) {
 </script>
 
 <template>
-  <div v-if="props.files.length === 0 && props.folders.length === 0" class="text-xs text-gray-500 px-3 py-4 text-center leading-relaxed">
+  <div v-if="props.files.length === 0 && props.folders.length === 0" class="tree-empty">
     Upload a ZIP or click ＋ to add files
   </div>
-  <div v-else class="text-sm select-none">
+  <div v-else class="tree-list">
     <div v-for="group in groupByFolder(props.files, props.folders)" :key="group.folder ?? '__root__'">
       <div
         v-if="group.folder !== null"
-        class="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 cursor-pointer hover:text-gray-300"
+        class="tree-folder"
         @click="toggleFolder(group.folder!)"
       >
-        <span class="text-gray-600">{{ collapsedFolders.has(group.folder!) ? '▶' : '▼' }}</span>
-        <span>📁 {{ group.folder }}</span>
-        <span v-if="group.files.length === 0" class="ml-auto text-gray-600 italic">empty</span>
+        <span class="tree-folder__arrow">{{ collapsedFolders.has(group.folder!) ? '▶' : '▼' }}</span>
+        <span class="tree-folder__label">📁 {{ group.folder }}</span>
+        <span v-if="group.files.length === 0" class="tree-folder__empty">empty</span>
       </div>
       <template v-if="!collapsedFolders.has(group.folder ?? '')">
         <div
           v-for="f in group.files"
           :key="f.path"
           :class="[
-            'flex items-center gap-1.5 py-1.5 cursor-pointer rounded mx-1',
-            group.folder !== null ? 'pl-5 pr-2' : 'px-2',
-            props.activeFile?.path === f.path
-              ? 'bg-blue-600 text-white'
-              : 'hover:bg-gray-700 text-gray-300',
+            'tree-file',
+            group.folder !== null ? 'tree-file--nested' : '',
+            props.activeFile?.path === f.path ? 'tree-file--active' : '',
           ]"
           @mouseenter="hoveredPath = f.path"
           @mouseleave="hoveredPath = null"
           @click="renamingPath !== f.path && emit('select', f.path)"
         >
-          <span class="flex-shrink-0 text-xs">{{ fileIcon[f.type] }}</span>
+          <span class="tree-file__icon">{{ fileIcon[f.type] }}</span>
           <input
             v-if="renamingPath === f.path"
             v-model="renameValue"
             autofocus
-            class="flex-1 min-w-0 bg-gray-900 border border-blue-400 rounded px-1 text-xs text-white outline-none"
+            class="tree-file__input"
             @blur="confirmRename"
             @keydown="handleRenameKey"
             @click.stop
           />
-          <span v-else class="flex-1 min-w-0 truncate text-xs" :title="f.path">{{ f.name }}</span>
-          <span v-if="hoveredPath === f.path && renamingPath !== f.path" class="flex-shrink-0 flex gap-0.5 ml-auto">
+          <span v-else class="tree-file__name" :title="f.path">{{ f.name }}</span>
+          <span v-if="hoveredPath === f.path && renamingPath !== f.path" class="tree-file__actions">
             <button
               title="Rename"
-              class="p-0.5 rounded text-xs text-gray-400 hover:text-white hover:bg-gray-600"
+              class="tree-file__action"
               @click="startRename(f, $event)"
             >✏</button>
             <button
               title="Delete"
-              class="p-0.5 rounded text-xs text-gray-400 hover:text-red-300 hover:bg-red-900"
+              class="tree-file__action tree-file__action--danger"
               @click="handleDelete(f, $event)"
             >🗑</button>
           </span>
@@ -138,3 +136,135 @@ function toggleFolder(folder: string) {
     </div>
   </div>
 </template>
+
+<style scoped>
+.tree-empty {
+  padding: 16px 12px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.tree-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  user-select: none;
+}
+
+.tree-folder {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.tree-folder:hover {
+  background: var(--panel-subtle);
+  color: var(--text-secondary);
+}
+
+.tree-folder__arrow,
+.tree-folder__empty {
+  font-size: 12px;
+}
+
+.tree-folder__label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.tree-folder__empty {
+  margin-left: auto;
+  font-style: italic;
+}
+
+.tree-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.tree-file:hover {
+  background: var(--panel-solid);
+  transform: translateX(1px);
+}
+
+.tree-file--nested {
+  margin-left: 18px;
+}
+
+.tree-file--active {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: #ffffff;
+  box-shadow: 0 16px 28px -18px rgba(37, 99, 235, 0.65);
+}
+
+.tree-file__icon {
+  flex-shrink: 0;
+  font-size: 13px;
+}
+
+.tree-file__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tree-file__input {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 10px;
+  border: 1px solid var(--accent-border);
+  border-radius: 12px;
+  background: var(--panel-muted);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.tree-file__actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.tree-file__action {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: inherit;
+  cursor: pointer;
+}
+
+.tree-file:not(.tree-file--active) .tree-file__action {
+  background: var(--panel-subtle);
+  color: var(--text-muted);
+}
+
+.tree-file__action--danger:hover {
+  color: #ffffff;
+  background: rgba(239, 68, 68, 0.85);
+}
+
+.tree-file__action:hover {
+  color: #ffffff;
+  background: rgba(37, 99, 235, 0.85);
+}
+</style>

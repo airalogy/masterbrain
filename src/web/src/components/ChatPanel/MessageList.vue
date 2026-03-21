@@ -2,15 +2,21 @@
 import { ref, watch, nextTick } from 'vue';
 import MarkdownIt from 'markdown-it';
 import type { ChatMessage } from '../../types/index.ts';
-import { useTheme } from '../../composables/useTheme.ts';
+import AiAvatar from './AiAvatar.vue';
 
 const COLLAPSE_LINES = 18;
+const EXAMPLE_PROMPTS = [
+  'Summarize the current AIMD protocol and point out the risky steps.',
+  'Find possible syntax or structure issues in my current file.',
+  'Suggest how to improve this workflow before I export the ZIP.',
+];
 
 const props = defineProps<{
   messages: ChatMessage[];
 }>();
 
 const emit = defineEmits<{
+  exampleClick: [text: string];
   applyBlock: [block: string, msgId: string];
   dismissBlock: [msgId: string];
   previewBlock: [block: string, msgId: string];
@@ -18,7 +24,6 @@ const emit = defineEmits<{
   regenerateStep: [];
 }>();
 
-const theme = useTheme();
 const bottomRef = ref<HTMLDivElement | null>(null);
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
@@ -48,7 +53,6 @@ function renderMarkdown(content: string): string {
   return md.render(content || '▋');
 }
 
-// Auto-scroll on new messages
 watch(() => props.messages, () => {
   nextTick(() => {
     bottomRef.value?.scrollIntoView({ behavior: 'smooth' });
@@ -57,82 +61,90 @@ watch(() => props.messages, () => {
 </script>
 
 <template>
-  <div v-if="props.messages.length === 0" class="flex-1 flex items-center justify-center text-gray-500 text-sm text-center p-4">
-    <div>
-      <div class="text-3xl mb-2">🤖</div>
-      <p class="font-medium text-gray-400">Airalogy Masterbrain</p>
-      <p class="text-xs mt-2 text-gray-600 leading-relaxed">
-        Enter your request — AI will decide whether to chat or generate a protocol.<br/>
-        Click <span class="font-mono">⚙ Settings</span> to choose the protocol router.
-      </p>
+  <div v-if="props.messages.length === 0" class="chat-empty">
+    <div class="chat-empty__hero">
+      <AiAvatar size="lg" />
+      <div>
+        <h3 class="chat-empty__title">Hi, I'm Aira</h3>
+        <p class="chat-empty__subtitle">Ask about protocol design, debugging, or workspace edits. The editor context is carried into the conversation automatically.</p>
+      </div>
+    </div>
+    <div class="chat-empty__examples">
+      <button
+        v-for="prompt in EXAMPLE_PROMPTS"
+        :key="prompt"
+        class="chat-empty__example"
+        @click="emit('exampleClick', prompt)"
+      >
+        {{ prompt }}
+      </button>
     </div>
   </div>
 
-  <div v-else class="flex-1 overflow-y-auto px-3 py-2 space-y-3">
-    <div v-for="msg in props.messages" :key="msg.id" :class="['flex flex-col', msg.role === 'user' ? 'items-end' : 'items-start']">
-      <div
-        :class="[
-          'max-w-[92%] rounded-lg px-3 py-2 text-sm',
-          msg.role === 'user'
-            ? 'bg-blue-700 text-white rounded-br-none'
-            : 'bg-gray-800 text-gray-200 rounded-bl-none',
-        ]"
-      >
-        <template v-if="msg.role === 'assistant'">
-          <div>
-            <div :class="['prose prose-sm max-w-none break-words', theme === 'dark' ? 'prose-invert' : '']" v-html="renderMarkdown(getDisplayContent(msg).displayed)" />
-            <button
-              v-if="getDisplayContent(msg).needsCollapse"
-              class="mt-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
-              @click="toggleExpand(msg.id)"
-            >
-              {{ getDisplayContent(msg).expanded ? '▲ Collapse' : `▼ Expand (${getDisplayContent(msg).lineCount} lines)` }}
-            </button>
-          </div>
-        </template>
-        <template v-else>
-          <span class="whitespace-pre-wrap break-words">{{ msg.content }}</span>
-        </template>
-      </div>
+  <div v-else class="chat-thread">
+    <div
+      v-for="msg in props.messages"
+      :key="msg.id"
+      :class="['chat-message', msg.role === 'user' ? 'chat-message--user' : 'chat-message--assistant']"
+    >
+      <AiAvatar v-if="msg.role === 'assistant'" size="sm" />
+      <div v-else class="chat-message__avatar">You</div>
+      <div class="chat-message__body">
+        <div class="chat-message__meta">
+          <span>{{ msg.role === 'assistant' ? 'Masterbrain' : 'You' }}</span>
+          <span v-if="msg.streaming">Thinking…</span>
+        </div>
+        <div :class="['chat-message__bubble', msg.role === 'user' ? 'chat-message__bubble--user' : 'chat-message__bubble--assistant']">
+          <template v-if="msg.role === 'assistant'">
+            <div>
+              <div class="chat-rich-text" v-html="renderMarkdown(getDisplayContent(msg).displayed)" />
+              <button
+                v-if="getDisplayContent(msg).needsCollapse"
+                class="chat-message__toggle"
+                @click="toggleExpand(msg.id)"
+              >
+                {{ getDisplayContent(msg).expanded ? 'Collapse' : `Expand (${getDisplayContent(msg).lineCount} lines)` }}
+              </button>
+            </div>
+          </template>
+          <template v-else>
+            <span class="chat-message__user-text">{{ msg.content }}</span>
+          </template>
+        </div>
 
-      <!-- V1 step: confirm / regenerate -->
-      <div v-if="msg.role === 'assistant' && !msg.streaming && msg.stepPending" class="mt-1.5 w-full max-w-[92%]">
-        <div class="bg-gray-800 border border-blue-700 rounded-lg p-2">
-          <p class="text-xs text-gray-400 mb-2">Written to editor. Confirm to save and continue to the next step.</p>
-          <div class="flex gap-1.5">
+        <div v-if="msg.role === 'assistant' && !msg.streaming && msg.stepPending" class="chat-action-card">
+          <p class="chat-action-card__text">Written to the editor. Confirm to save and continue to the next step.</p>
+          <div class="chat-action-card__actions">
             <button
-              class="flex-1 text-xs px-2 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-md transition-colors font-medium"
+              class="chat-action-card__button chat-action-card__button--primary"
               @click="emit('confirmStep')"
-            >✅ Confirm &amp; Continue</button>
+            >Confirm &amp; Continue</button>
             <button
-              class="flex-1 text-xs px-2 py-1.5 bg-orange-700 hover:bg-orange-600 text-white rounded-md transition-colors"
+              class="chat-action-card__button chat-action-card__button--secondary"
               @click="emit('regenerateStep')"
-            >🔄 Regenerate</button>
+            >Regenerate</button>
           </div>
         </div>
-      </div>
 
-      <!-- Chat mode: action buttons for detected code blocks -->
-      <div v-if="msg.role === 'assistant' && !msg.streaming && msg.aimdBlocks && msg.aimdBlocks.length > 0" class="mt-1.5 w-full max-w-[92%]">
-        <div class="bg-gray-800 border border-gray-600 rounded-lg p-2">
-          <p class="text-xs text-gray-400 mb-2">✨ AI generated content. What would you like to do?</p>
-          <div class="flex flex-wrap gap-1.5">
-            <span v-for="(block, i) in msg.aimdBlocks" :key="i" class="flex gap-1">
+        <div v-if="msg.role === 'assistant' && !msg.streaming && msg.aimdBlocks && msg.aimdBlocks.length > 0" class="chat-action-card">
+          <p class="chat-action-card__text">AI generated code or AIMD content. Preview it in the editor or apply it directly.</p>
+          <div class="chat-action-card__actions chat-action-card__actions--wrap">
+            <span v-for="(block, i) in msg.aimdBlocks" :key="i" class="chat-action-card__inline-actions">
               <button
-                class="text-xs px-2 py-1 bg-yellow-700 hover:bg-yellow-600 text-white rounded-md transition-colors"
+                class="chat-action-card__button chat-action-card__button--preview"
                 title="Preview in editor before deciding"
                 @click="emit('previewBlock', block, msg.id)"
-              >👁 Preview {{ block.startsWith('__py__') ? '.py' : '.aimd' }}</button>
+              >Preview {{ block.startsWith('__py__') ? '.py' : '.aimd' }}</button>
               <button
-                class="text-xs px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded-md transition-colors"
+                class="chat-action-card__button chat-action-card__button--primary"
                 title="Apply directly to editor"
                 @click="emit('applyBlock', block, msg.id)"
-              >✅ Apply</button>
+              >Apply</button>
             </span>
             <button
-              class="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-md transition-colors"
+              class="chat-action-card__button chat-action-card__button--ghost"
               @click="emit('dismissBlock', msg.id)"
-            >✕ Dismiss</button>
+            >Dismiss</button>
           </div>
         </div>
       </div>
@@ -140,3 +152,241 @@ watch(() => props.messages, () => {
     <div ref="bottomRef" />
   </div>
 </template>
+
+<style scoped>
+.chat-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 22px;
+  padding: 28px 18px 24px;
+}
+
+.chat-empty__hero {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.chat-empty__title {
+  margin: 2px 0 8px;
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.chat-empty__subtitle {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.chat-empty__examples {
+  display: grid;
+  gap: 10px;
+}
+
+.chat-empty__example {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  background: var(--panel-solid);
+  color: var(--text-secondary);
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.chat-empty__example:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow-md);
+}
+
+.chat-thread {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+}
+
+.chat-message {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.chat-message--user {
+  flex-direction: row-reverse;
+}
+
+.chat-message__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 14px;
+  background: var(--panel-solid);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.chat-message--user .chat-message__avatar {
+  background: var(--user-surface);
+  border-color: transparent;
+  color: var(--user-text);
+}
+
+.chat-message__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: calc(100% - 46px);
+}
+
+.chat-message--user .chat-message__body {
+  align-items: flex-end;
+}
+
+.chat-message__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.chat-message__bubble {
+  max-width: 100%;
+  padding: 14px 16px;
+  border-radius: 22px;
+  box-shadow: var(--shadow-md);
+}
+
+.chat-message__bubble--assistant {
+  border: 1px solid var(--assistant-border);
+  background: var(--assistant-surface);
+  color: var(--text-secondary);
+  border-top-left-radius: 8px;
+}
+
+.chat-message__bubble--user {
+  background: var(--user-surface);
+  color: var(--user-text);
+  border-top-right-radius: 8px;
+}
+
+.chat-message__user-text {
+  display: block;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+.chat-message__toggle {
+  margin-top: 12px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.chat-action-card {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  background: var(--panel-solid);
+  box-shadow: var(--shadow-md);
+}
+
+.chat-action-card__text {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.chat-action-card__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.chat-action-card__actions--wrap {
+  flex-wrap: wrap;
+}
+
+.chat-action-card__inline-actions {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chat-action-card__button {
+  padding: 9px 12px;
+  border: none;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.chat-action-card__button:hover {
+  transform: translateY(-1px);
+}
+
+.chat-action-card__button--primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: #ffffff;
+}
+
+.chat-action-card__button--secondary {
+  background: rgba(245, 158, 11, 0.9);
+  color: #ffffff;
+}
+
+.chat-action-card__button--preview {
+  background: rgba(14, 165, 233, 0.88);
+  color: #ffffff;
+}
+
+.chat-action-card__button--ghost {
+  background: var(--panel-subtle);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .chat-thread {
+    padding: 14px;
+  }
+
+  .chat-message__body {
+    max-width: calc(100% - 42px);
+  }
+
+  .chat-action-card__actions {
+    flex-direction: column;
+  }
+}
+</style>

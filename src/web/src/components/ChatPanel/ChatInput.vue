@@ -33,7 +33,6 @@ watch(text, (val) => {
 function handleTextChange(e: Event) {
   const target = e.target as HTMLTextAreaElement;
   text.value = target.value;
-  intentOverridden.value = false;
   target.style.height = 'auto';
   target.style.height = `${Math.min(target.scrollHeight, 140)}px`;
 }
@@ -62,86 +61,337 @@ function handleApplyRaw() {
   rawContent.value = '';
   showRaw.value = false;
 }
+
+function setIntent(intent: SendIntent) {
+  detectedIntent.value = intent;
+  intentOverridden.value = true;
+}
 </script>
 
 <template>
-  <div class="border-t border-gray-700">
-    <!-- Paste Raw panel -->
-    <div v-if="showRaw" class="border-b border-gray-700 p-2.5 bg-gray-800">
-      <div class="flex items-center gap-2 mb-1.5">
-        <span class="text-xs text-gray-400 font-medium">Paste content to editor</span>
-        <div class="flex gap-1 ml-auto">
+  <div class="composer-shell">
+    <div v-if="showRaw" class="composer-shell__raw-card">
+      <div class="composer-shell__raw-header">
+        <span class="composer-shell__label">Paste content to editor</span>
+        <div class="composer-shell__raw-types">
           <button
             v-for="t in (['aimd', 'py'] as const)"
             :key="t"
-            :class="['text-xs px-1.5 py-0.5 rounded transition-colors', rawType === t ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-400 hover:bg-gray-600']"
+            :class="['composer-shell__type-chip', rawType === t ? 'composer-shell__type-chip--active' : '']"
             @click="rawType = t"
           >.{{ t }}</button>
         </div>
-        <button class="text-gray-500 hover:text-gray-300 text-xs" @click="showRaw = false">✕</button>
+        <button class="composer-shell__ghost-button" @click="showRaw = false">Close</button>
       </div>
       <textarea
         v-model="rawContent"
         :placeholder="rawType === 'aimd' ? 'Paste .aimd content here...' : 'Paste Python code here...'"
         rows="5"
-        class="w-full bg-gray-900 border border-gray-600 rounded text-xs text-gray-200 p-2 outline-none resize-none font-mono"
+        class="composer-shell__raw-textarea"
       />
       <button
         :disabled="!rawContent.trim()"
-        class="mt-1.5 w-full py-1 text-xs rounded bg-green-700 hover:bg-green-600 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+        class="composer-shell__primary-button"
         @click="handleApplyRaw"
-      >✅ Apply to editor</button>
+      >Apply to editor</button>
     </div>
 
-    <!-- Model selector row -->
-    <div class="flex items-center gap-2 px-3 pt-2 pb-1">
-      <span class="text-xs text-gray-500">Model:</span>
-      <select
-        :value="props.model.name"
-        class="text-xs bg-gray-800 border border-gray-600 rounded px-1.5 py-0.5 text-gray-300 outline-none focus:border-blue-500"
-        @change="emit('update:model', { ...props.model, name: ($event.target as HTMLSelectElement).value })"
-      >
-        <option v-for="name in SUPPORTED_MODELS" :key="name" :value="name">{{ name }}</option>
-      </select>
-      <label class="flex items-center gap-1 text-xs text-gray-500 cursor-pointer">
+    <div class="composer-shell__toolbar">
+      <label class="composer-shell__field">
+        <span class="composer-shell__label">Model</span>
+        <select
+          :value="props.model.name"
+          class="composer-shell__select"
+          @change="emit('update:model', { ...props.model, name: ($event.target as HTMLSelectElement).value })"
+        >
+          <option v-for="name in SUPPORTED_MODELS" :key="name" :value="name">{{ name }}</option>
+        </select>
+      </label>
+      <label class="composer-shell__check">
         <input
           type="checkbox"
           :checked="props.model.enable_thinking"
-          class="w-3 h-3 accent-blue-500"
           @change="emit('update:model', { ...props.model, enable_thinking: ($event.target as HTMLInputElement).checked })"
         />
-        Think
+        <span>Thinking</span>
       </label>
       <button
-        :class="['ml-auto text-xs px-2 py-0.5 rounded transition-colors', showRaw ? 'bg-gray-600 text-gray-200' : 'bg-gray-700 text-gray-400 hover:bg-gray-600']"
+        :class="['composer-shell__ghost-button', showRaw ? 'composer-shell__ghost-button--active' : '']"
         title="Paste raw .aimd or .py content directly into the editor"
         @click="showRaw = !showRaw"
-      >📋 Paste</button>
+      >Paste code</button>
     </div>
 
-    <!-- Textarea + Send -->
-    <div class="px-3 pb-3">
-      <div class="flex items-end gap-2 bg-gray-800 rounded-lg px-3 py-2">
-        <textarea
-          ref="textareaRef"
-          :value="text"
-          :placeholder="props.isStreaming ? 'Generating...' : 'Message (Enter to send, Shift+Enter for newline)'"
-          :disabled="props.isStreaming"
-          rows="1"
-          class="flex-1 bg-transparent text-sm text-gray-200 placeholder-gray-500 resize-none outline-none overflow-hidden"
-          style="min-height: 24px"
-          @input="handleTextChange"
-          @keydown="handleKeyDown"
-        />
+    <div class="composer-shell__editor">
+      <textarea
+        ref="textareaRef"
+        :value="text"
+        :placeholder="props.isStreaming ? 'Generating...' : 'Message (Enter to send, Shift+Enter for newline)'"
+        :disabled="props.isStreaming"
+        rows="1"
+        class="composer-shell__textarea"
+        style="min-height: 24px"
+        @input="handleTextChange"
+        @keydown="handleKeyDown"
+      />
+      <div class="composer-shell__footer">
+        <div class="composer-shell__mode-group">
+          <button
+            :class="['composer-shell__mode-button', detectedIntent === 'chat' ? 'composer-shell__mode-button--active' : '']"
+            @click="setIntent('chat')"
+          >Chat</button>
+          <button
+            :class="['composer-shell__mode-button', detectedIntent === 'generate' ? 'composer-shell__mode-button--active' : '']"
+            @click="setIntent('generate')"
+          >Generate</button>
+          <span class="composer-shell__mode-hint">{{ intentOverridden ? 'Manually selected' : 'Auto-detected' }}</span>
+        </div>
         <button
           :disabled="!text.trim() || props.isStreaming"
-          class="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-md bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          class="composer-shell__send-button"
           @click="handleSend"
         >
-          <span v-if="props.isStreaming" class="text-xs animate-pulse">⏳</span>
-          <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          <span v-if="props.isStreaming">…</span>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
         </button>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.composer-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.composer-shell__toolbar,
+.composer-shell__editor,
+.composer-shell__raw-card {
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  background: var(--panel-solid);
+  box-shadow: var(--shadow-md);
+}
+
+.composer-shell__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.composer-shell__field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.composer-shell__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.composer-shell__select {
+  min-width: 146px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--panel-muted);
+  color: var(--text-primary);
+  outline: none;
+}
+
+.composer-shell__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--panel-muted);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.composer-shell__check input {
+  accent-color: var(--accent);
+}
+
+.composer-shell__ghost-button,
+.composer-shell__primary-button,
+.composer-shell__mode-button,
+.composer-shell__send-button,
+.composer-shell__type-chip {
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.composer-shell__ghost-button {
+  margin-left: auto;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--panel-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.composer-shell__ghost-button:hover,
+.composer-shell__primary-button:hover,
+.composer-shell__mode-button:hover,
+.composer-shell__send-button:hover,
+.composer-shell__type-chip:hover {
+  transform: translateY(-1px);
+}
+
+.composer-shell__ghost-button--active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.composer-shell__editor {
+  padding: 14px 14px 12px;
+}
+
+.composer-shell__textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  outline: none;
+  font-size: 14px;
+  line-height: 1.65;
+  overflow: hidden;
+}
+
+.composer-shell__textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.composer-shell__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.composer-shell__mode-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.composer-shell__mode-button {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--panel-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.composer-shell__mode-button--active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.composer-shell__mode-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.composer-shell__send-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: #ffffff;
+  box-shadow: 0 18px 30px -18px rgba(37, 99, 235, 0.6);
+}
+
+.composer-shell__send-button:disabled,
+.composer-shell__primary-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.composer-shell__raw-card {
+  padding: 14px;
+}
+
+.composer-shell__raw-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.composer-shell__raw-types {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.composer-shell__type-chip {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: var(--panel-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.composer-shell__type-chip--active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.composer-shell__raw-textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--panel-muted);
+  color: var(--text-primary);
+  outline: none;
+  font-family: "IBM Plex Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace;
+  line-height: 1.6;
+}
+
+.composer-shell__primary-button {
+  width: 100%;
+  margin-top: 12px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .composer-shell__toolbar,
+  .composer-shell__footer,
+  .composer-shell__raw-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .composer-shell__ghost-button {
+    margin-left: 0;
+  }
+}
+</style>

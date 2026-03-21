@@ -40,6 +40,42 @@ uv run uvicorn masterbrain.fastapi.main:app --reload --host 127.0.0.1 --port 808
 
 You can modify the port according to your needs.
 
+### 5. Start the web frontend
+
+If you want to use the interactive web UI, start the frontend after the FastAPI service is running.
+
+Requirements:
+
+- Node.js >= 18
+- npm >= 9
+
+```shell
+cd src/web
+
+# Install frontend dependencies
+npm install
+
+# Start Vite dev server
+npm run dev
+```
+
+Default frontend address:
+
+- `http://localhost:5173`
+
+During development, the Vite dev server proxies `/api/*` requests to `http://127.0.0.1:8080`.
+
+### 6. Build the web frontend
+
+```shell
+cd src/web
+npm run build
+```
+
+Build output:
+
+- `src/web/dist/`
+
 ## 🧩 Features
 
 Masterbrain API provides the following main feature modules:

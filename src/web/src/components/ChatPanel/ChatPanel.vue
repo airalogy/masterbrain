@@ -5,6 +5,7 @@ import type { Theme } from '../../composables/useTheme.ts';
 import type { SendIntent } from '../../composables/useChat.ts';
 import MessageList from './MessageList.vue';
 import ChatInput from './ChatInput.vue';
+import AiAvatar from './AiAvatar.vue';
 
 const props = defineProps<{
   messages: ChatMessage[];
@@ -44,69 +45,73 @@ const ROUTER_INFO: Record<ProtocolRouter, { label: string; desc: string }> = {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-gray-900 border-l border-gray-700">
-    <!-- Header -->
-    <div class="flex items-center justify-between px-3 py-2 border-b border-gray-700">
-      <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">AI Chat</h2>
-      <div class="flex items-center gap-1.5">
+  <div class="chat-shell">
+    <div class="chat-shell__header">
+      <div class="chat-shell__heading">
+        <AiAvatar size="md" />
+        <div>
+          <p class="chat-shell__eyebrow">Ask Aira</p>
+          <h2 class="chat-shell__title">Masterbrain Copilot</h2>
+        </div>
+      </div>
+      <div class="chat-shell__actions">
         <button
           title="Protocol settings"
-          :class="[
-            'text-xs px-2 py-1 rounded border font-medium transition-colors',
-            showAdvanced
-              ? 'border-blue-500 bg-blue-600/20 text-blue-400'
-              : 'border-gray-600 text-gray-400 hover:border-gray-400 hover:text-gray-200',
-          ]"
+          :class="['chat-shell__action-button', showAdvanced ? 'chat-shell__action-button--active' : '']"
           @click="showAdvanced = !showAdvanced"
-        >⚙ Settings</button>
+        >Settings</button>
         <button
           :disabled="props.messages.length === 0"
-          class="text-xs text-gray-500 hover:text-gray-300 disabled:opacity-40 transition-colors px-1"
+          class="chat-shell__action-button"
           @click="emit('clear')"
         >Clear</button>
         <button
           title="Collapse panel"
-          class="text-gray-500 hover:text-white hover:bg-gray-700 w-5 h-5 flex items-center justify-center rounded text-sm"
+          class="chat-shell__icon-button"
           @click="emit('collapse')"
         >›</button>
       </div>
     </div>
 
-    <!-- Advanced settings panel -->
-    <div v-if="showAdvanced" class="border-b border-gray-700 px-3 py-2.5 bg-gray-800 space-y-3">
+    <div class="chat-shell__meta">
+      <span class="chat-shell__pill">Router: {{ ROUTER_INFO[props.router].label }}</span>
+      <span class="chat-shell__pill">Model: {{ props.model.name }}</span>
+    </div>
+
+    <div v-if="showAdvanced" class="chat-shell__settings">
       <div>
-        <p class="text-xs font-medium text-gray-400 mb-2">Protocol Generation Router</p>
+        <p class="chat-shell__settings-label">Protocol generation router</p>
         <label
           v-for="(info, key) in ROUTER_INFO"
           :key="key"
-          class="flex items-start gap-2 cursor-pointer mb-1.5"
+          class="chat-shell__router-option"
         >
           <input
             type="radio"
             name="router"
             :value="key"
             :checked="props.router === key"
-            class="mt-0.5 accent-blue-500"
+            class="chat-shell__radio"
             @change="emit('update:router', key as ProtocolRouter)"
           />
-          <span>
-            <span :class="['text-xs font-medium', props.router === key ? 'text-blue-400' : 'text-gray-300']">{{ info.label }}</span>
-            <span class="block text-xs text-gray-500 mt-0.5">{{ info.desc }}</span>
+          <span class="chat-shell__router-content">
+            <span :class="['chat-shell__router-title', props.router === key ? 'chat-shell__router-title--active' : '']">{{ info.label }}</span>
+            <span class="chat-shell__router-desc">{{ info.desc }}</span>
           </span>
         </label>
       </div>
-      <div class="flex items-center justify-between pt-1 border-t border-gray-700">
-        <span class="text-xs text-gray-400">Theme</span>
+      <div class="chat-shell__settings-footer">
+        <span class="chat-shell__settings-label">Theme</span>
         <button
-          class="text-xs px-2 py-1 rounded border border-gray-600 text-gray-300 hover:border-gray-400 hover:text-gray-100 transition-colors"
+          class="chat-shell__action-button"
           @click="emit('themeToggle')"
-        >{{ props.theme === 'dark' ? '☀ Light mode' : '🌙 Dark mode' }}</button>
+        >{{ props.theme === 'dark' ? 'Light mode' : 'Dark mode' }}</button>
       </div>
     </div>
 
-    <!-- Messages -->
     <MessageList
       :messages="props.messages"
+      @example-click="(text) => !props.isStreaming && emit('send', text, 'chat')"
       @apply-block="(block, msgId) => emit('applyBlock', block, msgId)"
       @dismiss-block="(msgId) => emit('dismissBlock', msgId)"
       @preview-block="(block, msgId) => emit('previewBlock', block, msgId)"
@@ -114,13 +119,212 @@ const ROUTER_INFO: Record<ProtocolRouter, { label: string; desc: string }> = {
       @regenerate-step="emit('regenerateStep')"
     />
 
-    <!-- Input -->
-    <ChatInput
-      :is-streaming="props.isStreaming"
-      :model="props.model"
-      @update:model="(m) => emit('update:model', m)"
-      @send="(text, intent) => emit('send', text, intent)"
-      @apply-raw="(content, type) => emit('applyRaw', content, type)"
-    />
+    <div class="chat-shell__composer">
+      <ChatInput
+        :is-streaming="props.isStreaming"
+        :model="props.model"
+        @update:model="(m) => emit('update:model', m)"
+        @send="(text, intent) => emit('send', text, intent)"
+        @apply-raw="(content, type) => emit('applyRaw', content, type)"
+      />
+      <p class="chat-shell__disclaimer">Masterbrain may make mistakes. Review generated protocol content before saving it back to the workspace.</p>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.chat-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: transparent;
+}
+
+.chat-shell__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.chat-shell__heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chat-shell__eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.chat-shell__title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.chat-shell__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chat-shell__action-button,
+.chat-shell__icon-button {
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.chat-shell__action-button {
+  padding: 8px 11px;
+  border-radius: 12px;
+  background: var(--panel-subtle);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chat-shell__action-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chat-shell__action-button:hover:not(:disabled),
+.chat-shell__icon-button:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.chat-shell__action-button--active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.chat-shell__icon-button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 999px;
+  background: var(--panel-subtle);
+  color: var(--text-secondary);
+  font-size: 18px;
+}
+
+.chat-shell__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 18px 0;
+}
+
+.chat-shell__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--panel-solid);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.chat-shell__settings {
+  margin: 14px 18px 0;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  background: var(--panel-solid);
+  box-shadow: var(--shadow-md);
+}
+
+.chat-shell__settings-label {
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.chat-shell__router-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  background: var(--panel-muted);
+  cursor: pointer;
+}
+
+.chat-shell__router-option + .chat-shell__router-option {
+  margin-top: 10px;
+}
+
+.chat-shell__radio {
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.chat-shell__router-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chat-shell__router-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.chat-shell__router-title--active {
+  color: var(--accent);
+}
+
+.chat-shell__router-desc {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.chat-shell__settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+}
+
+.chat-shell__settings-footer .chat-shell__settings-label {
+  margin: 0;
+}
+
+.chat-shell__composer {
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--border-color);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, var(--panel-bg) 28%);
+}
+
+.chat-shell__disclaimer {
+  margin: 10px 6px 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-align: center;
+}
+</style>

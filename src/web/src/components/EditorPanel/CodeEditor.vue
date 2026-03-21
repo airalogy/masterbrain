@@ -56,7 +56,7 @@ function registerAimd() {
     },
   });
 
-  monaco.editor.defineTheme('aimd-dark', {
+  monaco.editor.defineTheme('masterbrain-dark', {
     base: 'vs-dark',
     inherit: true,
     rules: [
@@ -71,10 +71,21 @@ function registerAimd() {
       { token: 'aimd-assigner-code', foreground: 'ce9178' },
       { token: 'aimd-fence', foreground: '808080' },
     ],
-    colors: {},
+    colors: {
+      'editor.background': '#0b1220',
+      'editor.lineHighlightBackground': '#132036',
+      'editorGutter.background': '#0b1220',
+      'editorIndentGuide.background1': '#1f2e48',
+      'editorIndentGuide.activeBackground1': '#3b82f6',
+      'editor.selectionBackground': '#1d4ed840',
+      'editor.inactiveSelectionBackground': '#1d4ed820',
+      'editorCursor.foreground': '#93c5fd',
+      'editorLineNumber.foreground': '#5b6b85',
+      'editorLineNumber.activeForeground': '#cbd5e1',
+    },
   });
 
-  monaco.editor.defineTheme('aimd-light', {
+  monaco.editor.defineTheme('masterbrain-light', {
     base: 'vs',
     inherit: true,
     rules: [
@@ -89,7 +100,18 @@ function registerAimd() {
       { token: 'aimd-assigner-code', foreground: '92400e' },
       { token: 'aimd-fence', foreground: '6b7280' },
     ],
-    colors: {},
+    colors: {
+      'editor.background': '#fbfdff',
+      'editor.lineHighlightBackground': '#eef4ff',
+      'editorGutter.background': '#fbfdff',
+      'editorIndentGuide.background1': '#dbe5f1',
+      'editorIndentGuide.activeBackground1': '#60a5fa',
+      'editor.selectionBackground': '#bfdbfe',
+      'editor.inactiveSelectionBackground': '#dbeafe',
+      'editorCursor.foreground': '#2563eb',
+      'editorLineNumber.foreground': '#94a3b8',
+      'editorLineNumber.activeForeground': '#0f172a',
+    },
   });
 }
 
@@ -98,8 +120,7 @@ function getLanguage() {
 }
 
 function getTheme() {
-  if (props.file.type === 'aimd') return props.isDark ? 'aimd-dark' : 'aimd-light';
-  return props.isDark ? 'vs-dark' : 'vs';
+  return props.isDark ? 'masterbrain-dark' : 'masterbrain-light';
 }
 
 onMounted(() => {
@@ -110,7 +131,9 @@ onMounted(() => {
     value: props.file.content,
     language: getLanguage(),
     theme: getTheme(),
-    fontSize: 13,
+    fontSize: 14,
+    fontFamily: '"IBM Plex Mono", "SFMono-Regular", ui-monospace, Menlo, Monaco, Consolas, monospace',
+    lineHeight: 22,
     minimap: { enabled: false },
     wordWrap: 'on',
     scrollBeyondLastLine: false,
@@ -118,6 +141,20 @@ onMounted(() => {
     renderWhitespace: 'none',
     automaticLayout: true,
     readOnly: props.readOnly ?? false,
+    smoothScrolling: true,
+    cursorSmoothCaretAnimation: 'on',
+    roundedSelection: true,
+    padding: { top: 18, bottom: 18 },
+    lineNumbersMinChars: 3,
+    glyphMargin: false,
+    overviewRulerBorder: false,
+    renderLineHighlight: 'all',
+    bracketPairColorization: { enabled: true },
+    guides: {
+      indentation: true,
+      bracketPairs: true,
+    },
+    fixedOverflowWidgets: true,
   });
 
   editorInstance.value = editor;
