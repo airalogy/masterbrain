@@ -151,6 +151,24 @@ _OPENAI_VL_MODELS = frozenset(
     }
 )
 
+# Qwen3 models that support (and default-enable) extended thinking — disable it for slot extraction
+_QWEN3_THINKING_MODELS = frozenset(
+    {
+        "qwen3-max",
+        "qwen3.5-plus",
+        "qwen3.5-flash",
+        "qwen3-vl-flash",
+        "qwen3-vl-plus",
+    }
+)
+
+
+def _no_thinking_body(model_name: str) -> dict | None:
+    """Return extra_body to disable Qwen3 thinking, or None for other models."""
+    if model_name in _QWEN3_THINKING_MODELS:
+        return {"enable_thinking": False}
+    return None
+
 
 def get_vision_model_for(model_name: str) -> str:
     """
@@ -284,6 +302,9 @@ class SlotMemory:
                             ],
                         },
                     ],
+                    max_tokens=chat_request.model.max_tokens,
+                    temperature=chat_request.model.temperature,
+                    extra_body=_no_thinking_body(vision_model),
                 )
                 content = response.choices[0].message.content or ""
                 output = content.replace("None", "null").strip()
@@ -333,6 +354,8 @@ class SlotMemory:
                             ],
                         },
                     ],
+                    max_tokens=2048,
+                    extra_body=_no_thinking_body(vision_model),
                 )
                 input_text = response.choices[0].message.content or ""
                 input_text = clean_image_recognition_results(input_text)
@@ -359,6 +382,9 @@ class SlotMemory:
         response = await client.chat.completions.create(
             model=chat_request.model.name,
             messages=self.chat_history,
+            max_tokens=chat_request.model.max_tokens,
+            temperature=chat_request.model.temperature,
+            extra_body=_no_thinking_body(chat_request.model.name),
         )
         content = response.choices[0].message.content or ""
         output = content.replace("None", "null").strip()
