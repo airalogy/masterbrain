@@ -25,6 +25,7 @@ from masterbrain.endpoints import (
     chat_qa_vision_router,
     code_edit_router,
     field_input_router,
+    library_router,
     paper_generation_router,
     protocol_check_router,
     protocol_debug_router,
@@ -136,6 +137,7 @@ app.include_router(chat_qa_vision_router, prefix=ENDPOINTS_PREFIX, tags=["Chat"]
 app.include_router(chat_qa_stt_router, prefix=ENDPOINTS_PREFIX, tags=["Chat"])
 app.include_router(field_input_router, prefix=ENDPOINTS_PREFIX, tags=["Chat"])
 app.include_router(code_edit_router, prefix=ENDPOINTS_PREFIX, tags=["Chat"])
+app.include_router(library_router, prefix=ENDPOINTS_PREFIX, tags=["Library"])
 app.include_router(workspace_router, prefix=ENDPOINTS_PREFIX, tags=["Workspace"])
 
 

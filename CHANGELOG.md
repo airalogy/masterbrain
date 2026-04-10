@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### 新增功能
+
+- `apps/api` 现在直接依赖同仓库中的 `airalogy` 包，并复用 `.aira` 归档的校验与解包逻辑。
+- 新增本地 archive library：可把 `.aira` 导入 SQLite，本地持久化 protocol 和 record 元数据与 record JSON。
+- 桌面启动器现在支持直接传入 `.aira` 文件路径作为启动文档。
+- Web UI 左侧栏新增 `Library` 视图，可导入 `.aira`、浏览 protocol/record，并把库中的 protocol 重新装载到当前 workspace。
+
 ## v0.7.0
 
 ### 新增功能

@@ -235,7 +235,9 @@ function handleOpenWorkspacePath() {
 .files-shell {
   display: flex;
   flex-direction: column;
+  flex: 1;
   height: 100%;
+  min-height: 0;
   background: transparent;
   color: var(--text-primary);
 }

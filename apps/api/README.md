@@ -2,6 +2,8 @@
 
 Python backend for the Masterbrain monorepo. This app owns the FastAPI service, the desktop launcher, backend tests, and the PyInstaller packaging flow.
 
+The backend now depends directly on the sibling `airalogy` package and uses it to validate and unpack `.aira` archives for the local protocol/record library.
+
 ## Setup
 
 ```shell
@@ -31,6 +33,12 @@ You can bind the app to an existing workspace directory:
 uv run masterbrain-desktop --workspace /path/to/project
 ```
 
+You can also pass an `.aira` archive path as the launch document. Masterbrain will import it into the local library before opening the UI:
+
+```shell
+uv run masterbrain-desktop /path/to/archive.aira
+```
+
 ## OpenCode
 
 Code-edit flows require an OpenCode runtime. Either install `opencode` globally, or vendor it locally:
@@ -44,7 +52,7 @@ python3 scripts/vendor_opencode.py
 Run the backend test suite:
 
 ```shell
-uv run pytest
+uv run python -m pytest
 ```
 
 `pytest.ini` excludes `openai` and `qwen` markers by default.

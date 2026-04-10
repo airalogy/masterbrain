@@ -350,6 +350,37 @@ class WorkspaceManager:
         path = _safe_workspace_path(root, rel_path)
         path.mkdir(parents=True, exist_ok=True)
 
+    def replace_with_directory(self, source_root: str | Path) -> None:
+        source = _safe_root(source_root)
+        root = self.ensure_root()
+        self._clear_workspace_contents(root)
+
+        for current_dir, dirnames, filenames in os.walk(source):
+            dir_path = Path(current_dir)
+            rel_dir = dir_path.relative_to(source)
+
+            dirnames[:] = [
+                dirname
+                for dirname in dirnames
+                if not _is_ignored_rel_path(rel_dir / dirname)
+            ]
+
+            for dirname in dirnames:
+                target_dir = _safe_workspace_path(
+                    root,
+                    (rel_dir / dirname).as_posix(),
+                )
+                target_dir.mkdir(parents=True, exist_ok=True)
+
+            for filename in filenames:
+                rel_path = rel_dir / filename
+                if _is_ignored_rel_path(rel_path):
+                    continue
+                source_file = dir_path / filename
+                target_file = _safe_workspace_path(root, rel_path.as_posix())
+                target_file.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(source_file, target_file)
+
     def import_zip_bytes(self, payload: bytes) -> None:
         root = self.ensure_root()
         try:

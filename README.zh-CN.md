@@ -13,6 +13,10 @@ masterbrain/
 └── README.zh-CN.md
 ```
 
+`masterbrain` 按运行时依赖不同的基础仓库：backend 依赖 `airalogy`，frontend 的 AIMD 行为应来自 `aimd`。桌面版 Masterbrain 已支持把 `.aira` 归档导入本地 SQLite library，在 UI 中浏览导入的 protocol 和 record，并在需要时把某个 protocol 一键重新装载到当前 workspace。
+
+关于 `masterbrain`、`airalogy`、`aimd` 三者的仓库关系、本地 sibling checkout 联调方式，以及跨 repo 的 release 顺序，见 [`CONTRIBUTING.zh-CN.md`](./CONTRIBUTING.zh-CN.md)。
+
 ## 快速开始
 
 先构建一次前端：
@@ -44,6 +48,12 @@ uv run masterbrain-desktop
 
 ```shell
 uv run masterbrain-desktop --workspace /path/to/project
+```
+
+如果你想让 Masterbrain 直接打开一个 `.aira` 文件并先导入本地库：
+
+```shell
+uv run masterbrain-desktop /path/to/archive.aira
 ```
 
 源代码运行模式下，对话改代码功能仍然需要 OpenCode runtime。你可以把 `opencode` 放到系统 `PATH`，或者执行：
@@ -89,7 +99,7 @@ PyInstaller 输出目录为 `apps/api/dist/Masterbrain/`。
 
 ```shell
 cd apps/api
-uv run pytest
+uv run python -m pytest
 ```
 
 `apps/api/pytest.ini` 默认会跳过依赖外部 API 的测试标记。

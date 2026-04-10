@@ -15,9 +15,11 @@ import sys
 import threading
 import time
 import webbrowser
+from pathlib import Path
 
 import uvicorn
 
+from masterbrain.library_store import library_store
 from masterbrain.utils.opencode import missing_opencode_message, resolve_opencode_binary
 
 
@@ -55,6 +57,11 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=0)
     parser.add_argument(
+        "document",
+        nargs="?",
+        help="Optional workspace directory or .aira archive path to open on launch.",
+    )
+    parser.add_argument(
         "--workspace",
         help="Open Masterbrain against an existing local workspace directory.",
     )
@@ -65,8 +72,33 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    if args.workspace:
-        os.environ["MASTERBRAIN_WORKSPACE_DIR"] = args.workspace
+    workspace_path = args.workspace
+    archive_path: str | None = None
+
+    if args.document:
+        document = Path(args.document).expanduser().resolve()
+        if document.is_dir() and workspace_path is None:
+            workspace_path = str(document)
+        elif document.is_file() and document.suffix == ".aira":
+            archive_path = str(document)
+        elif not document.exists():
+            raise RuntimeError(f"Document path does not exist: {document}")
+        else:
+            raise RuntimeError(
+                "Desktop launcher accepts a workspace directory or a .aira archive path."
+            )
+
+    if workspace_path:
+        os.environ["MASTERBRAIN_WORKSPACE_DIR"] = workspace_path
+
+    if archive_path:
+        result = library_store.import_archive_path(archive_path)
+        import_result = result["result"]
+        action = "Reused existing" if import_result["duplicate"] else "Imported"
+        print(
+            f"{action} {import_result['kind']} archive into local library: "
+            f"{import_result['source_name']}"
+        )
 
     from masterbrain.fastapi.main import WEB_DIST_DIR, app
 
@@ -77,8 +109,8 @@ def main() -> None:
         )
 
     _print_opencode_status()
-    if args.workspace:
-        print(f"Using workspace directory: {args.workspace}")
+    if workspace_path:
+        print(f"Using workspace directory: {workspace_path}")
 
     host = args.host
     port = args.port or _find_free_port()

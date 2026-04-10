@@ -17,6 +17,96 @@ export interface WorkspaceState {
   can_select_directory: boolean;
 }
 
+export interface LibraryArchiveSummary {
+  id: number;
+  source_name: string;
+  source_path: string | null;
+  kind: 'protocol' | 'records';
+  sha256: string;
+  imported_at: string;
+  protocol_count: number;
+  record_count: number;
+}
+
+export interface LibraryProtocolSummary {
+  id: number;
+  archive_id: number;
+  protocol_id: string | null;
+  protocol_version: string | null;
+  protocol_name: string;
+  entrypoint: string;
+  archive_root: string | null;
+  file_count: number;
+  imported_at: string;
+}
+
+export interface LibraryRecordSummary {
+  id: number;
+  archive_id: number;
+  record_id: string | null;
+  record_version: string | null;
+  protocol_id: string | null;
+  protocol_version: string | null;
+  sha1: string | null;
+  source_path: string | null;
+  source_index: number;
+  embedded_protocol_root: string | null;
+  imported_at: string;
+}
+
+export interface LibraryState {
+  db_path: string;
+  archive_count: number;
+  protocol_count: number;
+  record_count: number;
+  archives: LibraryArchiveSummary[];
+  protocols: LibraryProtocolSummary[];
+  records: LibraryRecordSummary[];
+}
+
+export interface LibraryImportResult {
+  archive_id: number;
+  duplicate: boolean;
+  source_name: string;
+  source_path: string | null;
+  kind: 'protocol' | 'records';
+  sha256: string;
+  imported_at: string;
+  protocol_count: number;
+  record_count: number;
+}
+
+export interface LibraryImportResponse {
+  result: LibraryImportResult;
+  state: LibraryState;
+}
+
+export interface LibraryProtocolPreview {
+  protocol: LibraryProtocolSummary;
+  files: FileEntry[];
+  binary_file_count: number;
+  total_file_count: number;
+}
+
+export interface LibraryRecordDetailPayload {
+  id: number;
+  archive_id: number;
+  record_id: string | null;
+  record_version: string | null;
+  protocol_id: string | null;
+  protocol_version: string | null;
+  sha1: string | null;
+  source_path: string | null;
+  source_index: number;
+  embedded_protocol_root: string | null;
+  imported_at: string;
+}
+
+export interface LibraryRecordDetail {
+  record: LibraryRecordDetailPayload;
+  payload: Record<string, unknown>;
+}
+
 export interface EditorSelection {
   text: string;
   startOffset: number;

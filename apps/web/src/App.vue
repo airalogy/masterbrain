@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import FileManager from './components/FileManager/FileManager.vue';
+import LibraryPanel from './components/FileManager/LibraryPanel.vue';
 import EditorPanel from './components/EditorPanel/EditorPanel.vue';
 import ChatPanel from './components/ChatPanel/ChatPanel.vue';
 import { useFileManager } from './composables/useFileManager.ts';
+import { useLibrary } from './composables/useLibrary.ts';
 import { useChat } from './composables/useChat.ts';
 import { provideTheme, type Theme } from './composables/useTheme.ts';
 import type { CodeChange, EditorSelection, PreviewState } from './types/index.ts';
 
 const leftOpen = ref(true);
 const rightOpen = ref(true);
+const leftView = ref<'workspace' | 'library'>('workspace');
 const theme = ref<Theme>('light');
 
 provideTheme(theme);
@@ -26,6 +29,22 @@ const {
   uploadZip, downloadZip, updateFileContent, createFile, deleteFile, renameFile, selectFile, createFolder,
   refreshWorkspace, selectWorkspace, openWorkspace,
 } = useFileManager();
+
+const {
+  libraryState, isLoadingLibrary, isLoadingPreview, libraryError, lastImportResult,
+  selectedProtocolPreview, selectedRecordDetail,
+  refreshLibrary, importAiraPath, importAiraFile, previewProtocol, previewRecord, loadProtocolToWorkspace,
+} = useLibrary();
+
+watch(
+  [() => libraryState.value.archive_count, () => hasWorkspace.value],
+  ([archiveCount, workspaceReady]) => {
+    if (archiveCount > 0 && !workspaceReady) {
+      leftView.value = 'library';
+    }
+  },
+  { immediate: true },
+);
 
 const previewState = ref<PreviewState | null>(null);
 const editorSelection = ref<EditorSelection | null>(null);
@@ -130,6 +149,29 @@ function handleCreateFile(name: string, content: string) {
   createFile(name, content, undefined, true);
 }
 
+async function handleImportAiraPath(path: string) {
+  try {
+    await importAiraPath(path);
+  } catch {
+    // Error state is already surfaced inside the library panel.
+  }
+}
+
+async function handleImportAiraFile(file: File) {
+  try {
+    await importAiraFile(file);
+  } catch {
+    // Error state is already surfaced inside the library panel.
+  }
+}
+
+async function handleLoadProtocol(protocolId: number) {
+  const loaded = await loadProtocolToWorkspace(protocolId);
+  if (!loaded) return;
+  await refreshWorkspace();
+  leftView.value = 'workspace';
+}
+
 function handleApplyChangedFile(change: CodeChange, msgId: string) {
   applyCodeChange(change, change.status !== 'deleted');
   removeChangedFile(msgId, change.path);
@@ -152,7 +194,18 @@ function handleApplyAllChangedFiles(changes: CodeChange[], msgId: string) {
 <template>
   <div class="workspace-shell">
     <div v-if="leftOpen" class="workspace-shell__sidebar">
+      <div class="workspace-shell__sidebar-tabs">
+        <button
+          :class="['workspace-shell__sidebar-tab', leftView === 'workspace' ? 'workspace-shell__sidebar-tab--active' : '']"
+          @click="leftView = 'workspace'"
+        >Workspace</button>
+        <button
+          :class="['workspace-shell__sidebar-tab', leftView === 'library' ? 'workspace-shell__sidebar-tab--active' : '']"
+          @click="leftView = 'library'"
+        >Library</button>
+      </div>
       <FileManager
+        v-if="leftView === 'workspace'"
         :files="files"
         :folders="folders"
         :active-file="activeFile"
@@ -173,6 +226,24 @@ function handleApplyAllChangedFiles(changes: CodeChange[], msgId: string) {
         @select-workspace="selectWorkspace"
         @open-workspace="openWorkspace"
         @refresh-workspace="refreshWorkspace"
+        @collapse="leftOpen = false"
+      />
+      <LibraryPanel
+        v-else
+        :library-state="libraryState"
+        :has-workspace="hasWorkspace"
+        :is-loading-library="isLoadingLibrary"
+        :is-loading-preview="isLoadingPreview"
+        :library-error="libraryError"
+        :last-import-result="lastImportResult"
+        :selected-protocol-preview="selectedProtocolPreview"
+        :selected-record-detail="selectedRecordDetail"
+        @import-file="handleImportAiraFile"
+        @import-path="handleImportAiraPath"
+        @refresh-library="refreshLibrary"
+        @preview-protocol="previewProtocol"
+        @preview-record="previewRecord"
+        @load-protocol="handleLoadProtocol"
         @collapse="leftOpen = false"
       />
     </div>
@@ -255,6 +326,8 @@ function handleApplyAllChangedFiles(changes: CodeChange[], msgId: string) {
 .workspace-shell__sidebar {
   width: 288px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   border: 1px solid var(--border-color);
   border-radius: 24px;
@@ -262,6 +335,30 @@ function handleApplyAllChangedFiles(changes: CodeChange[], msgId: string) {
   background: var(--panel-bg);
   backdrop-filter: blur(22px);
   box-shadow: var(--shadow-md);
+}
+
+.workspace-shell__sidebar-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 12px 12px 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+}
+
+.workspace-shell__sidebar-tab {
+  flex: 1;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--panel-subtle);
+  color: var(--text-muted);
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.workspace-shell__sidebar-tab--active {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
 
 .workspace-shell__main {

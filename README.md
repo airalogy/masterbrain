@@ -13,6 +13,10 @@ masterbrain/
 └── README.md
 ```
 
+`masterbrain` is organized to consume separate foundational repos by runtime: the backend depends on `airalogy`, while frontend AIMD behavior is intended to come from `aimd`. The desktop app can import `.aira` archives into a local SQLite library, preview imported protocols and records, and load a stored protocol back into the current workspace when needed.
+
+For the repo relationship, local sibling checkout workflow, and cross-repo release order across `masterbrain`, `airalogy`, and `aimd`, see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+
 ## Quick Start
 
 Build the frontend once:
@@ -45,6 +49,14 @@ You can also start directly against a workspace directory:
 ```shell
 uv run masterbrain-desktop --workspace /path/to/project
 ```
+
+Or launch Masterbrain with an `.aira` archive as the initial document:
+
+```shell
+uv run masterbrain-desktop /path/to/archive.aira
+```
+
+This imports the archive into Masterbrain's local library before the UI opens.
 
 For source checkouts, chat-driven code editing still needs an OpenCode runtime. Either put `opencode` on `PATH`, or vendor it with:
 
@@ -91,7 +103,7 @@ Run backend tests from `apps/api`:
 
 ```shell
 cd apps/api
-uv run pytest
+uv run python -m pytest
 ```
 
 `apps/api/pytest.ini` skips API-backed markers by default.

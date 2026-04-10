@@ -3,6 +3,7 @@ from .chat.qa.language.router import chat_qa_language_router
 from .chat.qa.stt.router import chat_qa_stt_router
 from .chat.qa.vision.router import chat_qa_vision_router
 from .code_edit.router import code_edit_router
+from .library.router import library_router
 from .paper_generation.router import paper_generation_router
 from .protocol_check.router import protocol_check_router
 from .protocol_debug.router import protocol_debug_router
@@ -18,6 +19,7 @@ __all__ = [
     "chat_qa_vision_router",
     "field_input_router",
     "code_edit_router",
+    "library_router",
     "protocol_generation_aimd_router",
     "protocol_generation_assigner_router",
     "protocol_generation_model_router",
