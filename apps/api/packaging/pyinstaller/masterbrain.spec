@@ -1,11 +1,20 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 from pathlib import Path
+from PyInstaller.utils.hooks import collect_data_files
 
 
-api_root = Path(__file__).resolve().parents[2]
+spec_dir = Path(globals().get("__file__", Path(globals().get("SPECPATH", Path.cwd())))).resolve()
+if spec_dir.is_file():
+    spec_dir = spec_dir.parent
+
+api_root = spec_dir.parents[1]
 web_dist = api_root.parent / "web" / "dist"
 vendored_opencode = api_root / "vendor" / "opencode"
+package_data = collect_data_files(
+    "masterbrain",
+    includes=["**/*.md", "**/*.json", "**/*.txt"],
+)
 
 if not web_dist.exists():
     raise SystemExit(
@@ -25,6 +34,7 @@ a = Analysis(
     datas=[
         (str(web_dist), "web_dist"),
         (str(vendored_opencode), "vendor/opencode"),
+        *package_data,
     ],
     hiddenimports=[],
     hookspath=[],

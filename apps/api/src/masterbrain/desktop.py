@@ -50,6 +50,12 @@ def _print_opencode_status() -> None:
     print(f"Using OpenCode runtime: {opencode_binary}")
 
 
+def _desktop_argv(argv: list[str]) -> list[str]:
+    # Finder launches macOS apps with a transient `-psn_*` argument that should
+    # not be treated as a user-supplied CLI flag or document path.
+    return [arg for arg in argv if not arg.startswith("-psn_")]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Launch Masterbrain as a single local desktop-style app."
@@ -70,7 +76,7 @@ def main() -> None:
         action="store_true",
         help="Start the local app without opening a browser window automatically.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(_desktop_argv(sys.argv[1:]))
 
     workspace_path = args.workspace
     archive_path: str | None = None
@@ -134,7 +140,12 @@ def main() -> None:
     if not args.no_browser:
         webbrowser.open(url)
 
-    thread.join()
+    try:
+        thread.join()
+    except KeyboardInterrupt:
+        print("Stopping Masterbrain...", file=sys.stderr)
+        server.should_exit = True
+        thread.join(timeout=5)
 
 
 if __name__ == "__main__":

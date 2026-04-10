@@ -25,6 +25,7 @@ dependencies = [
 
 [project.scripts]
 masterbrain-desktop = "masterbrain.desktop:main"
+masterbrain-build-desktop = "masterbrain.build_desktop_bundle:main"
 
 
 [build-system]

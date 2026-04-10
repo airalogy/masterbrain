@@ -69,10 +69,15 @@ If you want a distributable local app bundle, use:
 
 ```bash
 cd apps/api
-./scripts/build_desktop_bundle.sh
+uv run masterbrain-build-desktop
 ```
 
-This currently uses PyInstaller, automatically downloads and bundles the matching OpenCode CLI, and outputs a bundle to `apps/api/dist/Masterbrain/`.
+This uses PyInstaller, automatically downloads and bundles the matching OpenCode CLI, writes the raw bundle to `apps/api/dist/Masterbrain/`, and then prepares release artifacts under `apps/api/dist/release/<platform>/`.
+On macOS/Linux you can still use `./scripts/build_desktop_bundle.sh`, and on Windows PowerShell you can use `.\scripts\build_desktop_bundle.ps1`.
+
+- macOS: unsigned `Masterbrain.app` plus a versioned `.zip`
+- Windows x64: portable directory, portable `.zip`, and an Inno Setup `.iss` installer script; if `ISCC.exe` is present, the installer `.exe` is built too
+- Linux: portable directory plus a versioned `.tar.gz`
 
 ---
 

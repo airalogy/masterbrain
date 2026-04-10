@@ -9,6 +9,7 @@
 - 桌面启动器现在支持直接传入 `.aira` 文件路径作为启动文档。
 - Web UI 左侧栏新增 `Library` 视图，可导入 `.aira`、浏览 protocol/record，并把库中的 protocol 重新装载到当前 workspace。
 - `apps/web` 现在直接接入同级 `aimd` 仓库中的 AIMD Monaco 语法和 AIMD renderer，替换原先本地维护的轻量 `.aimd` 解析/预览实现。
+- 新增跨平台桌面打包 CLI `masterbrain-build-desktop`，可额外生成 macOS `.app`、Windows portable 包与安装器脚本、Linux portable 压缩包，并补充 macOS / Windows / Linux 平台支持矩阵文档。
 
 ## v0.7.0
 

@@ -4,6 +4,8 @@ Python backend for the Masterbrain monorepo. This app owns the FastAPI service, 
 
 The backend now depends directly on the sibling `airalogy` package and uses it to validate and unpack `.aira` archives for the local protocol/record library.
 
+For platform coverage and packaging limits, see [`../../PLATFORM_SUPPORT.md`](../../PLATFORM_SUPPORT.md).
+
 ## Setup
 
 ```shell
@@ -59,10 +61,19 @@ uv run python -m pytest
 
 ## Packaging
 
-Build the packaged local bundle:
+Build the packaged local bundle with the cross-platform CLI:
 
 ```shell
-./scripts/build_desktop_bundle.sh
+uv run masterbrain-build-desktop
 ```
 
-This builds the frontend from `apps/web`, vendors OpenCode into `apps/api/vendor/`, and writes the PyInstaller bundle to `apps/api/dist/Masterbrain/`.
+Wrapper scripts are also available:
+
+- macOS / Linux: `./scripts/build_desktop_bundle.sh`
+- Windows PowerShell: `.\scripts\build_desktop_bundle.ps1`
+
+This builds the frontend from `apps/web`, vendors OpenCode into `apps/api/vendor/`, syncs the packaging dependency group, writes the raw PyInstaller bundle to `apps/api/dist/Masterbrain/`, and then packages platform release artifacts under `apps/api/dist/release/<platform>/`.
+
+- macOS: unsigned `Masterbrain.app` and a versioned `.zip`
+- Windows x64: portable directory, portable `.zip`, and an Inno Setup `.iss` script; if `ISCC.exe` is available or passed via `--inno-setup-compiler`, the installer `.exe` is also built
+- Linux: portable directory and a versioned `.tar.gz`

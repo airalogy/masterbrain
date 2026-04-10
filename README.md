@@ -16,6 +16,7 @@ masterbrain/
 `masterbrain` is organized to consume separate foundational repos by runtime: the backend depends on `airalogy`, while frontend AIMD behavior is intended to come from `aimd`. The desktop app can import `.aira` archives into a local SQLite library, preview imported protocols and records, and load a stored protocol back into the current workspace when needed.
 
 For the repo relationship, local sibling checkout workflow, and cross-repo release order across `masterbrain`, `airalogy`, and `aimd`, see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+For current platform coverage and packaging limits, see [`PLATFORM_SUPPORT.md`](./PLATFORM_SUPPORT.md).
 
 For source checkouts, the frontend now resolves `@airalogy/aimd-editor/monaco`, `@airalogy/aimd-renderer`, and AIMD preview styles directly from a sibling `aimd/` repository. Keep the local layout as:
 
@@ -103,10 +104,19 @@ Build the local desktop bundle from `apps/api`:
 
 ```shell
 cd apps/api
-./scripts/build_desktop_bundle.sh
+uv run masterbrain-build-desktop
 ```
 
-The PyInstaller bundle is written to `apps/api/dist/Masterbrain/`.
+Platform wrappers are also available:
+
+- macOS / Linux: `./scripts/build_desktop_bundle.sh`
+- Windows PowerShell: `.\scripts\build_desktop_bundle.ps1`
+
+This writes the raw PyInstaller bundle to `apps/api/dist/Masterbrain/` and also creates platform release artifacts under `apps/api/dist/release/<platform>/`.
+
+- macOS: unsigned `Masterbrain.app` plus a versioned `.zip`
+- Windows x64: portable directory, portable `.zip`, and an Inno Setup `.iss` installer script; if `ISCC.exe` is available, the installer `.exe` is built automatically
+- Linux: portable directory plus a versioned `.tar.gz`
 
 ## Tests
 
