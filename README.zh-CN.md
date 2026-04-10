@@ -17,6 +17,15 @@ masterbrain/
 
 关于 `masterbrain`、`airalogy`、`aimd` 三者的仓库关系、本地 sibling checkout 联调方式，以及跨 repo 的 release 顺序，见 [`CONTRIBUTING.zh-CN.md`](./CONTRIBUTING.zh-CN.md)。
 
+源码运行时，frontend 现在会直接从同级 `aimd/` 仓库解析 `@airalogy/aimd-editor/monaco`、`@airalogy/aimd-renderer` 以及 AIMD 预览样式。建议保持本地目录结构为：
+
+```txt
+workspace/
+├── airalogy/
+├── aimd/
+└── masterbrain/
+```
+
 ## 快速开始
 
 先构建一次前端：
@@ -26,6 +35,8 @@ cd apps/web
 npm install
 npm run build
 ```
+
+这里默认同级的 `aimd` checkout 已经存在。
 
 先在 `apps/api/.env` 中配置后端环境变量：
 

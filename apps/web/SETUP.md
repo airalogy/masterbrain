@@ -10,6 +10,8 @@
 | uv | latest |
 | OpenCode CLI | latest, for source/dev runs |
 
+For source checkouts, keep a sibling `aimd/` repository next to `masterbrain/`. The frontend now resolves AIMD editor/renderer code directly from that checkout.
+
 ---
 
 ## 1. Backend
@@ -86,6 +88,7 @@ npm run dev
 ```
 
 The Vite dev server proxies all `/api/*` requests to `http://127.0.0.1:8080`, so no CORS configuration is needed during development.
+It also resolves AIMD editor/renderer runtime files from the sibling `aimd/` checkout via Vite aliases.
 
 This mode is mainly for frontend development. For normal local use, prefer `masterbrain-desktop`.
 
@@ -96,7 +99,8 @@ This mode is mainly for frontend development. For normal local use, prefer `mast
 | Package | Purpose |
 |---------|---------|
 | `vue` | UI framework (Vue 3 Composition API) |
-| `monaco-editor` | Code editor with `.aimd` / Python syntax highlighting |
+| `monaco-editor` | Code editor host for `.aimd` / Python files |
+| sibling `aimd` repo | Source of the shared AIMD Monaco grammar, renderer, and preview styles |
 | `markdown-it` | Render AI chat messages as Markdown |
 | `tailwindcss` | Utility-first CSS (class-based dark mode via `darkMode: 'class'`) |
 

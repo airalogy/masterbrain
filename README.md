@@ -17,6 +17,15 @@ masterbrain/
 
 For the repo relationship, local sibling checkout workflow, and cross-repo release order across `masterbrain`, `airalogy`, and `aimd`, see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
+For source checkouts, the frontend now resolves `@airalogy/aimd-editor/monaco`, `@airalogy/aimd-renderer`, and AIMD preview styles directly from a sibling `aimd/` repository. Keep the local layout as:
+
+```txt
+workspace/
+├── airalogy/
+├── aimd/
+└── masterbrain/
+```
+
 ## Quick Start
 
 Build the frontend once:
@@ -26,6 +35,8 @@ cd apps/web
 npm install
 npm run build
 ```
+
+This assumes the sibling `aimd` checkout already exists next to `masterbrain`.
 
 First configure backend environment variables in `apps/api/.env`:
 

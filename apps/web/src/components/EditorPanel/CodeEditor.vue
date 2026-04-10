@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount, shallowRef } from 'vue';
 import * as monaco from 'monaco-editor';
+import { aimdTokenColors, completionItemProvider, conf, language } from '@airalogy/aimd-editor/monaco';
 import type { EditorSelection, FileEntry } from '../../types/index.ts';
 
 const props = defineProps<{
@@ -19,52 +20,33 @@ const editorInstance = shallowRef<monaco.editor.IStandaloneCodeEditor | null>(nu
 let suppressChange = false;
 let registered = false;
 
+function getAimdThemeRules(): monaco.editor.ITokenThemeRule[] {
+  return aimdTokenColors.flatMap((tokenColor) => {
+    const scopes = Array.isArray(tokenColor.scope) ? tokenColor.scope : [tokenColor.scope];
+    return scopes.map((scope) => ({
+      token: scope,
+      foreground: tokenColor.settings.foreground?.replace('#', ''),
+      fontStyle: tokenColor.settings.fontStyle,
+    }));
+  });
+}
+
 function registerAimd() {
   if (registered) return;
   registered = true;
 
   monaco.languages.register({ id: 'aimd' });
-  monaco.languages.setMonarchTokensProvider('aimd', {
-    tokenizer: {
-      root: [
-        [/\{\{step\|[^}]+\}\}/, 'aimd-step'],
-        [/\{\{var\|/, { token: 'aimd-var-open', next: '@varBlock' }],
-        [/^```assigner$/, { token: 'aimd-assigner-fence', next: '@assignerBlock' }],
-        [/^```\w*$/, { token: 'aimd-fence', next: '@codeBlock' }],
-        [/^#{1,6}\s+.*$/, 'aimd-heading'],
-        [/\*\*[^*]+\*\*/, 'aimd-bold'],
-        [/\*[^*]+\*/, 'aimd-italic'],
-      ],
-      varBlock: [
-        [/\}\}/, { token: 'aimd-var-close', next: '@pop' }],
-        [/[^}]+/, 'aimd-var'],
-      ],
-      assignerBlock: [
-        [/^```$/, { token: 'aimd-assigner-fence', next: '@pop' }],
-        [/.*/, 'aimd-assigner-code'],
-      ],
-      codeBlock: [
-        [/^```$/, { token: 'aimd-fence', next: '@pop' }],
-        [/.*/, 'string'],
-      ],
-    },
-  });
+  monaco.languages.setMonarchTokensProvider('aimd', language as monaco.languages.IMonarchLanguage);
+  monaco.languages.setLanguageConfiguration('aimd', conf as monaco.languages.LanguageConfiguration);
+  monaco.languages.registerCompletionItemProvider(
+    'aimd',
+    completionItemProvider as monaco.languages.CompletionItemProvider,
+  );
 
   monaco.editor.defineTheme('masterbrain-dark', {
     base: 'vs-dark',
     inherit: true,
-    rules: [
-      { token: 'aimd-step', foreground: '569cd6', fontStyle: 'bold' },
-      { token: 'aimd-var-open', foreground: '4ec9b0' },
-      { token: 'aimd-var', foreground: '4ec9b0' },
-      { token: 'aimd-var-close', foreground: '4ec9b0' },
-      { token: 'aimd-heading', foreground: 'dcdcaa', fontStyle: 'bold' },
-      { token: 'aimd-bold', fontStyle: 'bold' },
-      { token: 'aimd-italic', fontStyle: 'italic' },
-      { token: 'aimd-assigner-fence', foreground: '808080' },
-      { token: 'aimd-assigner-code', foreground: 'ce9178' },
-      { token: 'aimd-fence', foreground: '808080' },
-    ],
+    rules: getAimdThemeRules(),
     colors: {
       'editor.background': '#0b1220',
       'editor.lineHighlightBackground': '#132036',
@@ -82,18 +64,7 @@ function registerAimd() {
   monaco.editor.defineTheme('masterbrain-light', {
     base: 'vs',
     inherit: true,
-    rules: [
-      { token: 'aimd-step', foreground: '1d4ed8', fontStyle: 'bold' },
-      { token: 'aimd-var-open', foreground: '065f46' },
-      { token: 'aimd-var', foreground: '065f46' },
-      { token: 'aimd-var-close', foreground: '065f46' },
-      { token: 'aimd-heading', foreground: '7c3aed', fontStyle: 'bold' },
-      { token: 'aimd-bold', fontStyle: 'bold' },
-      { token: 'aimd-italic', fontStyle: 'italic' },
-      { token: 'aimd-assigner-fence', foreground: '6b7280' },
-      { token: 'aimd-assigner-code', foreground: '92400e' },
-      { token: 'aimd-fence', foreground: '6b7280' },
-    ],
+    rules: getAimdThemeRules(),
     colors: {
       'editor.background': '#fbfdff',
       'editor.lineHighlightBackground': '#eef4ff',

@@ -8,6 +8,7 @@
 - 新增本地 archive library：可把 `.aira` 导入 SQLite，本地持久化 protocol 和 record 元数据与 record JSON。
 - 桌面启动器现在支持直接传入 `.aira` 文件路径作为启动文档。
 - Web UI 左侧栏新增 `Library` 视图，可导入 `.aira`、浏览 protocol/record，并把库中的 protocol 重新装载到当前 workspace。
+- `apps/web` 现在直接接入同级 `aimd` 仓库中的 AIMD Monaco 语法和 AIMD renderer，替换原先本地维护的轻量 `.aimd` 解析/预览实现。
 
 ## v0.7.0
 
