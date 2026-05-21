@@ -4,19 +4,31 @@ Masterbrain 采用轻量 monorepo 结构：
 
 ```txt
 masterbrain/
+├── packages/
+│   └── masterbrain/
+│       ├── pyproject.toml
+│       ├── src/masterbrain/
+│       └── tests/
 ├── apps/
-│   ├── api/
-│   │   ├── pyproject.toml
-│   │   ├── src/masterbrain/
-│   │   └── tests/
-│   └── web/
+│   └── studio/
 │       ├── src/
 │       └── package.json
 ├── docs/
 └── README.zh-CN.md
 ```
 
-本页重点说明 `apps/api/src/masterbrain/` 下的后端 Python 包组织方式。
+本页重点说明 `packages/masterbrain/src/masterbrain/` 下的 Python 发布包组织方式。
+
+## Python 包分层
+
+Python 包现在围绕稳定的 core/provider/API 边界组织：
+
+- `core/`：与模型供应商无关的 AI 契约、事件和请求类型，以及后续无状态 workflow
+- `providers/`：OpenAI-compatible、Qwen/DashScope 等具体模型供应商适配和模型路由
+- `endpoints/`：FastAPI endpoint 契约和应用层编排
+- `fastapi/`：可部署 HTTP 应用的装配层
+
+下游应用应依赖这个 Python 包或它暴露的 HTTP API，不依赖 Masterbrain Studio 前端。
 
 ## Endpoint 优先的组织方式
 
@@ -71,10 +83,12 @@ masterbrain/endpoints/
 - 配置本地开发需要的 CORS
 - 注册所有 endpoint 路由
 - 统一处理模型相关异常
-- 在前端构建产物存在时直接托管 `apps/web/dist`
+- 在前端构建产物存在时直接托管 `apps/studio/dist`
 
 ## 当前主要后端模块
 
+- `core/`：无状态、供应商无关的 AI 契约
+- `providers/`：模型供应商适配与模型到供应商的路由
 - `endpoints/`：用户可见的 API 路由与业务逻辑
 - `prompts/`：系统消息与 prompt 资源
 - `utils/`：LLM 集成、打印、OpenCode 等辅助逻辑
@@ -83,4 +97,4 @@ masterbrain/endpoints/
 
 ## 测试
 
-后端测试位于 `apps/api/tests/`，大多按 endpoint 维度组织。这让“API 契约 -> 实现 -> 测试覆盖”之间的映射关系比较清晰。
+Python 测试位于 `packages/masterbrain/tests/`，大多按 endpoint 维度组织。这让“API 契约 -> 实现 -> 测试覆盖”之间的映射关系比较清晰。Studio 前端检查位于 `apps/studio`。

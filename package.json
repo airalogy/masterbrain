@@ -5,7 +5,14 @@
   "scripts": {
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "studio:dev": "npm --prefix apps/studio run dev",
+    "studio:build": "npm --prefix apps/studio run build",
+    "studio:preview": "npm --prefix apps/studio run preview",
+    "test:python": "cd packages/masterbrain && UV_CACHE_DIR=.uv-cache uv run python -m pytest tests/test_packaging/test_desktop_packaging.py tests/test_providers/test_litellm.py tests/test_utils/test_llm.py tests/test_endpoints/test_chat/test_field_input/test_types.py tests/test_endpoints/test_chat/test_field_input/test_slot_service.py tests/test_endpoints/test_paper_generation/test_types.py tests/test_endpoints/test_protocol_debug/test_types.py tests/test_endpoints/test_code_edit/test_logic.py tests/test_endpoints/test_library/test_router.py",
+    "test:python:all": "cd packages/masterbrain && UV_CACHE_DIR=.uv-cache uv run python -m pytest",
+    "test:studio": "npm --prefix apps/studio run type-check",
+    "test": "npm run test:python && npm run test:studio"
   },
   "devDependencies": {
     "vitepress": "^1.0.0"

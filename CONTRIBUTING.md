@@ -14,13 +14,13 @@ The intended repository model is:
 
 - keep all three as separate repos
 - `masterbrain` backend depends on `airalogy`
-- `masterbrain` frontend depends on `aimd`
+- `masterbrain` frontend depends on published `@airalogy/aimd-*` npm packages
 - `airalogy` and `aimd` do not depend on each other as packages
-- use local sibling checkouts for fast joint development
+- local sibling checkouts can be used as a convenient working-copy layout for cross-repo validation
 
 ## Working Copy Layout
 
-For local development, keep the repos as sibling directories:
+For cross-repo development, you can keep the repos as sibling directories:
 
 ```txt
 workspace/
@@ -29,7 +29,7 @@ workspace/
 └── masterbrain/
 ```
 
-The backend currently uses a local `uv` source override for `airalogy`. The frontend-side AIMD dependency should follow the same sibling-checkout principle for `aimd`.
+This layout is only a contributor convenience for opening and validating multiple repos together. Masterbrain Studio must depend on published `@airalogy/aimd-*` npm packages and should not default to Vite aliases or source paths from a sibling `aimd/` checkout.
 
 ## Dependency Policy
 
@@ -52,7 +52,7 @@ Use this when developing `masterbrain` together with `airalogy` and/or `aimd`.
 - clone the relevant repos side by side
 - edit `airalogy` for backend-facing changes
 - edit `aimd` for frontend-facing AIMD changes
-- run and test `masterbrain` against those local checkouts
+- build and validate the package in `aimd`; if you need to test unpublished frontend changes inside `masterbrain`, use temporary local npm link/pack workflows, but do not commit local path dependencies or Vite aliases
 - only merge `masterbrain` work after the required dependency changes are ready
 
 This mode is for contributor velocity. It should not become the only install path for downstream users.
@@ -73,7 +73,7 @@ When a `masterbrain` feature requires dependency changes:
 ### Frontend-facing change
 
 1. Implement and validate the required AIMD change in `aimd`.
-2. Update `masterbrain` frontend to use the new `aimd` implementation through the local sibling checkout.
+2. If needed, temporarily validate the unpublished package locally with npm link/pack, without committing local path dependencies.
 3. Run local frontend checks in both repos.
 4. Release or otherwise publish the required `aimd` package version.
 5. Update `masterbrain` frontend dependency metadata and lockfile.
@@ -106,13 +106,13 @@ For changes that span repos:
 Typical local commands in `masterbrain`:
 
 ```bash
-cd apps/api
+cd packages/masterbrain
 uv sync --dev
 uv run python -m pytest
 ```
 
 ```bash
-cd apps/web
+cd apps/studio
 npm install
 npm run build
 ```

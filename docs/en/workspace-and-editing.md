@@ -6,7 +6,7 @@ Masterbrain no longer treats the workspace as an abstract in-memory project. The
 
 You can:
 
-- launch directly against a directory with `masterbrain-desktop --workspace /path/to/project`
+- launch directly against a directory with `masterbrain-studio --workspace /path/to/project`
 - choose a directory from the sidebar
 - paste a path into the UI
 - import a ZIP archive into the selected directory

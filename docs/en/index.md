@@ -29,9 +29,10 @@ Masterbrain is organized as a lightweight monorepo:
 
 ```txt
 masterbrain/
+├── packages/
+│   └── masterbrain/  # Published Python package, core/providers, API runtime, tests
 ├── apps/
-│   ├── api/   # FastAPI backend, desktop launcher, packaging, Python tests
-│   └── web/   # Vue 3 + TypeScript frontend
+│   └── studio/       # Vue 3 + TypeScript standalone frontend
 ├── docs/      # VitePress documentation site
 └── README.md
 ```

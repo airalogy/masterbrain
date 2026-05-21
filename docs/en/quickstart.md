@@ -13,26 +13,28 @@
 Build the frontend once:
 
 ```sh
-cd apps/web
+cd apps/studio
 npm install
 npm run build
 ```
 
-Then start the backend in desktop mode:
+Then start the Python package in Studio mode:
 
 ```sh
-cd ../api
+cd ../../packages/masterbrain
 cp .env.example .env
 uv sync
-uv run masterbrain-desktop
+uv run masterbrain-studio
 ```
 
 This starts one local process that serves the FastAPI backend and the built web UI, then opens Masterbrain in your default browser.
 
+`uv run masterbrain-desktop` is kept as a deprecated compatibility alias and will be removed in a future release.
+
 If you want to open a specific directory immediately:
 
 ```sh
-uv run masterbrain-desktop --workspace /path/to/project
+uv run masterbrain-studio --workspace /path/to/project
 ```
 
 ## Development mode
@@ -40,7 +42,7 @@ uv run masterbrain-desktop --workspace /path/to/project
 Backend:
 
 ```sh
-cd apps/api
+cd packages/masterbrain
 uv sync --dev
 uv run uvicorn masterbrain.fastapi.main:app --reload --host 127.0.0.1 --port 8080
 ```
@@ -48,7 +50,7 @@ uv run uvicorn masterbrain.fastapi.main:app --reload --host 127.0.0.1 --port 808
 Frontend:
 
 ```sh
-cd apps/web
+cd apps/studio
 npm install
 npm run dev
 ```
@@ -57,7 +59,7 @@ The Vite dev server runs at `http://localhost:5173` and proxies `/api/*` to `htt
 
 ## Environment variables
 
-Create `apps/api/.env` when needed:
+Create `packages/masterbrain/.env` when needed:
 
 ```ini
 OPENAI_API_KEY=sk-...
@@ -72,10 +74,10 @@ Notes:
 
 ## Tests
 
-Run backend tests from `apps/api`:
+Run Python package tests from `packages/masterbrain`:
 
 ```sh
 uv run pytest
 ```
 
-`apps/api/pytest.ini` skips API-backed markers by default.
+`packages/masterbrain/pytest.ini` skips API-backed markers by default.

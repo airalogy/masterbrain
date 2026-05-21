@@ -2,13 +2,29 @@
 
 ## Unreleased
 
+- 暂无。
+
+## v0.8.0
+
+### 架构调整
+
+- Python 发布包从 `apps/api` 迁移到 `packages/masterbrain`，让发布包和应用目录边界更清晰。
+- Vue 前端应用从 `apps/web` 更名为 `apps/studio`，使应用命名更贴近 Masterbrain Studio 的独立前端定位。
+- 新增 `masterbrain.core` 与 `masterbrain.providers`，建立无状态 AI core、模型供应商适配层和 API endpoint 的分层边界。
+- 模型调用层改为以 LiteLLM 为默认 provider 兼容适配，保留 Masterbrain 自己的 core/workflow 边界，并在依赖约束中排除已知受影响的 LiteLLM 版本 `1.82.7`、`1.82.8`。
+- 新增 `openai`、`qwen`、`all-providers`、`api` optional dependency extras，为后续更轻量的 core 安装方式预留接口。
+
+### 变更
+
+- 新增推荐启动入口 `masterbrain-studio`；旧入口 `masterbrain-desktop` 标记为废弃兼容别名，并将在未来版本移除。
+
 ### 新增功能
 
-- `apps/api` 现在直接依赖同仓库中的 `airalogy` 包，并复用 `.aira` 归档的校验与解包逻辑。
+- `packages/masterbrain` 现在直接依赖已发布的 `airalogy` 包，并复用 `.aira` 归档的校验与解包逻辑。
 - 新增本地 archive library：可把 `.aira` 导入 SQLite，本地持久化 protocol 和 record 元数据与 record JSON。
 - 桌面启动器现在支持直接传入 `.aira` 文件路径作为启动文档。
 - Web UI 左侧栏新增 `Library` 视图，可导入 `.aira`、浏览 protocol/record，并把库中的 protocol 重新装载到当前 workspace。
-- `apps/web` 现在直接接入同级 `aimd` 仓库中的 AIMD Monaco 语法和 AIMD renderer，替换原先本地维护的轻量 `.aimd` 解析/预览实现。
+- `apps/studio` 直接依赖 npm 已发布的 `@airalogy/aimd-editor`、`@airalogy/aimd-renderer`、`@airalogy/aimd-recorder`，接入 AIMD Monaco 语法和 AIMD renderer，替换原先本地维护的轻量 `.aimd` 解析/预览实现。
 - 新增跨平台桌面打包 CLI `masterbrain-build-desktop`，可额外生成 macOS `.app`、Windows portable 包与安装器脚本、Linux portable 压缩包，并补充 macOS / Windows / Linux 平台支持矩阵文档。
 
 ## v0.7.0

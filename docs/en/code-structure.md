@@ -4,19 +4,31 @@ Masterbrain uses a lightweight monorepo layout:
 
 ```txt
 masterbrain/
+├── packages/
+│   └── masterbrain/
+│       ├── pyproject.toml
+│       ├── src/masterbrain/
+│       └── tests/
 ├── apps/
-│   ├── api/
-│   │   ├── pyproject.toml
-│   │   ├── src/masterbrain/
-│   │   └── tests/
-│   └── web/
+│   └── studio/
 │       ├── src/
 │       └── package.json
 ├── docs/
 └── README.md
 ```
 
-This page focuses on the backend Python package under `apps/api/src/masterbrain/`.
+This page focuses on the published Python package under `packages/masterbrain/src/masterbrain/`.
+
+## Layered Python package
+
+The Python package is now organized around a stable core/provider/API boundary:
+
+- `core/`: provider-neutral AI contracts, event and request types, and future stateless workflows
+- `providers/`: concrete model provider selection and SDK adapters such as OpenAI-compatible and Qwen/DashScope clients
+- `endpoints/`: FastAPI endpoint contracts and application-specific orchestration
+- `fastapi/`: the deployable HTTP application assembly
+
+Downstream applications should depend on this Python package or its HTTP API, not on the Studio frontend.
 
 ## Endpoint-first organization
 
@@ -79,6 +91,8 @@ That module:
 
 ## Current major backend areas
 
+- `core/`: stateless provider-neutral AI contracts
+- `providers/`: model provider adapters and model-to-provider registry
 - `endpoints/`: user-facing API routes and business logic
 - `prompts/`: reusable prompt files and system message loaders
 - `utils/`: helper functions for LLM integration, printing, and OpenCode support
@@ -87,4 +101,4 @@ That module:
 
 ## Tests
 
-Backend tests live under `apps/api/tests/` and mostly mirror the endpoint structure. This makes it easier to reason from public API surface to implementation to test coverage.
+Python tests live under `packages/masterbrain/tests/` and mostly mirror the endpoint structure. This makes it easier to reason from public API surface to implementation to test coverage. Studio frontend checks live under `apps/studio`.

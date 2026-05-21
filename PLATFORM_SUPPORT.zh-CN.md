@@ -15,7 +15,7 @@
 
 ## “已支持” 的含义
 
-- `源码运行` 指可以在源码 checkout 中执行 `uv run masterbrain-desktop`。
+- `源码运行` 指可以在源码 checkout 中执行 `uv run masterbrain-studio`。
 - `本地桌面包构建` 指可以在该平台本机上构建基于 PyInstaller 的本地 bundle。
 - `内置 OpenCode` 指打包流程可以自动拉取并随包分发该平台对应的官方 OpenCode CLI。
 - `工作目录选择器` 指应用可以调用系统目录选择对话框。
@@ -31,7 +31,7 @@
 - 桌面包应在目标平台本机上构建。当前没有使用 PyInstaller 做跨平台交叉编译。
 - 现在的形态仍然是会自动打开浏览器的 desktop-style local bundle。macOS 产物还没有做代码签名或 notarization，Windows 侧目前也不产出 MSI。
 - Windows 当前只明确支持 `x64`，因为 OpenCode vendoring 逻辑只支持 `windows-x64`。
-- 源码构建默认要求 `masterbrain` 同级存在 `airalogy/` 和 `aimd/` 仓库。
+- 从源码构建或运行 Studio 前端时，依赖已发布的 `@airalogy/aimd-*` npm 包，不要求同级存在 `aimd/` 仓库。
 - `.aira` 文件关联元数据已经写入 macOS app bundle 和 Windows 安装器脚本，但系统级真正注册仍取决于用户如何安装或启动这些产物。
 
 ## 构建入口
@@ -39,7 +39,7 @@
 推荐使用跨平台命令：
 
 ```shell
-cd apps/api
+cd packages/masterbrain
 uv run masterbrain-build-desktop
 ```
 

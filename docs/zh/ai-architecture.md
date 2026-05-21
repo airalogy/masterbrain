@@ -36,18 +36,31 @@ sequenceDiagram
 
 ## FastAPI 主入口
 
-`apps/api/src/masterbrain/fastapi/main.py` 是整个服务的装配点。它会：
+`packages/masterbrain/src/masterbrain/fastapi/main.py` 是整个服务的装配点。它会：
 
 - 把所有公共路由统一挂载到 `/api/endpoints`
 - 将模型相关异常转换为稳定的 HTTP 错误
-- 在检测到 `apps/web/dist` 时直接托管前端
-- 支持 `masterbrain-desktop` 的一体化本地应用模式
+- 在检测到 `apps/studio/dist` 时直接托管前端
+- 支持 `masterbrain-studio` 的一体化本地应用模式
 
 这让同一套后端既能支持源码开发，也能支持本地桌面式打包分发。
 
+## 模型供应商边界
+
+Masterbrain 的模型兼容层以 LiteLLM 为默认执行后端，但不把 LiteLLM 的 API 直接暴露给 workflow 或 endpoint。内部通过 `masterbrain.providers` 提供一个小的 OpenAI-compatible facade，现有代码仍然使用 `client.chat.completions.create(...)` 这类稳定调用面。
+
+分层边界如下：
+
+- `core` 定义 provider-neutral 的 AI 输入输出契约和能力声明
+- `providers` 负责把 Masterbrain 契约转换到 LiteLLM 或少量 provider-specific API
+- `workflows` 负责具体 AI 功能流程、prompt、schema、tool 和能力检查
+- `endpoints` 只负责 HTTP 参数转换和错误映射
+
+LiteLLM 负责减少 OpenAI、Qwen、DashScope 等模型调用差异；Masterbrain 自己仍然负责判断某个 workflow 是否依赖 vision、tool calling、structured output、streaming 等能力。
+
 ## 前端与工作区模型
 
-前端位于 `apps/web`，开发模式下由 Vite 提供；集成模式下则由 FastAPI 托管生产构建产物。
+前端位于 `apps/studio`，开发模式下由 Vite 提供；集成模式下则由 FastAPI 托管生产构建产物。
 
 当前架构中最关键的设计点之一是：工作区是磁盘上的真实目录，而不是抽象的内存项目。
 

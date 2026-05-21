@@ -29,9 +29,10 @@ Masterbrain 采用轻量 monorepo 结构：
 
 ```txt
 masterbrain/
+├── packages/
+│   └── masterbrain/  # Python 发布包、core/providers、API runtime、测试
 ├── apps/
-│   ├── api/   # FastAPI 后端、桌面启动器、打包脚本、Python 测试
-│   └── web/   # Vue 3 + TypeScript 前端
+│   └── studio/       # Vue 3 + TypeScript 独立前端
 ├── docs/      # VitePress 文档站
 └── README.zh-CN.md
 ```

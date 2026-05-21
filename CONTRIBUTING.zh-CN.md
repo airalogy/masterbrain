@@ -14,13 +14,13 @@ English version: [`CONTRIBUTING.md`](./CONTRIBUTING.md)
 
 - 保持三个独立 repo
 - `masterbrain` backend 依赖 `airalogy`
-- `masterbrain` frontend 依赖 `aimd`
+- `masterbrain` frontend 依赖已发布的 `@airalogy/aimd-*` npm 包
 - `airalogy` 与 `aimd` 在 package 层面彼此不依赖
-- 本地开发时用同级目录联调
+- 本地开发时可以把相关 repo 放在同级目录，便于跨 repo 验证
 
 ## 本地目录结构
 
-本地开发推荐把三个仓库放在同级目录：
+跨 repo 功能联调时，可以把三个仓库放在同级目录：
 
 ```txt
 workspace/
@@ -29,7 +29,7 @@ workspace/
 └── masterbrain/
 ```
 
-当前这个 `masterbrain` checkout 已在 backend 侧配置了面向 `uv` 的本地 `airalogy` source override。frontend 侧对 `aimd` 的使用也应遵循同样的 sibling checkout 原则。
+这个目录结构只是为了方便同时打开和验证多个 repo。`masterbrain` 的 Studio 前端实现必须依赖 npm 已发布的 `@airalogy/aimd-*` 包，不应通过 Vite alias 或源码路径默认读取同级 `aimd/`。
 
 ## 依赖策略
 
@@ -52,7 +52,7 @@ workspace/
 - 相关 repo 同级放置
 - backend 相关改动在本地修改 `airalogy`
 - frontend 的 AIMD 相关改动在本地修改 `aimd`
-- 直接在 `masterbrain` 中联调这些修改
+- 在 `aimd` 中完成 package 构建和本地验证；如需在 `masterbrain` 中临时验证未发布改动，可以使用本机 npm 工具链做临时 link/pack，但不要提交这类本地路径依赖或 Vite alias
 - 只有当所需依赖能力准备好后，再合并 `masterbrain` 侧改动
 
 这种模式是为了提高研发效率，不应该成为下游用户唯一可用的安装方式。
@@ -73,7 +73,7 @@ workspace/
 ### frontend 相关改动
 
 1. 先在 `aimd` 实现并验证所需的 AIMD 改动。
-2. 再在本地 sibling checkout 中更新 `masterbrain` frontend 对该实现的使用。
+2. 如需联调，可以在本机用 npm link/pack 临时验证，但不要把本地路径依赖提交到 `masterbrain`。
 3. 在两个 repo 中分别跑前端检查与构建。
 4. 先发布所需的 `aimd` package 版本。
 5. 再更新 `masterbrain` frontend 的依赖元数据和 lockfile。
@@ -106,13 +106,13 @@ workspace/
 `masterbrain` 中常用的本地命令：
 
 ```bash
-cd apps/api
+cd packages/masterbrain
 uv sync --dev
 uv run python -m pytest
 ```
 
 ```bash
-cd apps/web
+cd apps/studio
 npm install
 npm run build
 ```

@@ -1,5 +1,6 @@
 .env
 .venv/
+.uv-cache/
 
 __pycache__
 .pytest_cache/
@@ -19,6 +20,7 @@ masterbrain/endpoints/chat/qa/language/logs
 
 node_modules/
 apps/api/vendor/
+packages/masterbrain/vendor/
 
 .coverage
 htmlcov/

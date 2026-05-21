@@ -71,4 +71,4 @@ That approach makes it easier to:
 - build UI around the current phase
 - test each step independently
 
-The implementation lives under `apps/api/src/masterbrain/endpoints/aira/`.
+The implementation lives under `packages/masterbrain/src/masterbrain/endpoints/aira/`.
