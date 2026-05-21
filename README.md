@@ -18,6 +18,7 @@ masterbrain/
 
 For the repo relationship, local joint-development workflow, and cross-repo release order across `masterbrain`, `airalogy`, and `aimd`, see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 For current platform coverage and packaging limits, see [`PLATFORM_SUPPORT.md`](./PLATFORM_SUPPORT.md).
+For PyPI release automation, see [`RELEASING.md`](./RELEASING.md).
 
 ## Quick Start
 
@@ -88,6 +89,8 @@ npm run studio:dev
 The Vite dev server runs at `http://localhost:5173` and proxies `/api/*` to `http://127.0.0.1:8080`.
 
 ## Packaging
+
+PyPI publishing is handled by GitHub Actions on `v*` tag pushes. See [`RELEASING.md`](./RELEASING.md) for the release flow.
 
 Build the local desktop bundle from `packages/masterbrain`:
 

@@ -18,6 +18,7 @@ masterbrain/
 
 关于 `masterbrain`、`airalogy`、`aimd` 三者的仓库关系、本地联调方式，以及跨 repo 的 release 顺序，见 [`CONTRIBUTING.zh-CN.md`](./CONTRIBUTING.zh-CN.md)。
 当前的平台覆盖范围和打包限制见 [`PLATFORM_SUPPORT.zh-CN.md`](./PLATFORM_SUPPORT.zh-CN.md)。
+PyPI 自动发布流程见 [`RELEASING.zh-CN.md`](./RELEASING.zh-CN.md)。
 
 ## 快速开始
 
@@ -86,6 +87,8 @@ npm run studio:dev
 Vite 开发服务器默认运行在 `http://localhost:5173`，并将 `/api/*` 代理到 `http://127.0.0.1:8080`。
 
 ## 打包
+
+PyPI 发布由 GitHub Actions 在推送 `v*` tag 时自动执行。完整流程见 [`RELEASING.zh-CN.md`](./RELEASING.zh-CN.md)。
 
 在 `packages/masterbrain` 中构建本地桌面包：
 

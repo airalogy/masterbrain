@@ -5,6 +5,7 @@ Published Python package for the Masterbrain monorepo. It owns the provider-neut
 The package depends on the sibling `airalogy` package in source checkouts and uses it to validate and unpack `.aira` archives for the local protocol/record library.
 
 For platform coverage and packaging limits, see [`../../PLATFORM_SUPPORT.md`](../../PLATFORM_SUPPORT.md).
+For PyPI release automation, see [`../../RELEASING.md`](../../RELEASING.md).
 
 ## Setup
 
@@ -62,6 +63,8 @@ uv run python -m pytest
 `pytest.ini` excludes `openai` and `qwen` markers by default.
 
 ## Packaging
+
+PyPI publishing is handled by the repository-level GitHub Actions release workflow on `v*` tag pushes.
 
 Build the packaged local bundle with the cross-platform CLI:
 

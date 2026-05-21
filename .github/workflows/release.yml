@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Verify release version matches tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import tomllib
+
+          tag = os.environ["RELEASE_TAG"]
+          if not tag.startswith("v"):
+              raise SystemExit(f"Expected a v-prefixed tag, got: {tag}")
+
+          expected_version = tag[1:]
+          pyproject_path = pathlib.Path("packages/masterbrain/pyproject.toml")
+          pyproject = tomllib.loads(pyproject_path.read_text())
+          pyproject_version = pyproject["project"]["version"]
+
+          if pyproject_version != expected_version:
+              raise SystemExit(
+                  f"{pyproject_path} has {pyproject_version}, expected {expected_version}"
+              )
+
+          print(f"Validated release version {expected_version}")
+          PY
+
+      - name: Sync Python environment
+        working-directory: packages/masterbrain
+        run: UV_CACHE_DIR=.uv-cache uv sync --locked --dev
+
+      - name: Run Python release tests
+        working-directory: packages/masterbrain
+        run: |
+          UV_CACHE_DIR=.uv-cache uv run --no-sync python -m pytest \
+            tests/test_packaging/test_desktop_packaging.py \
+            tests/test_providers/test_litellm.py \
+            tests/test_utils/test_llm.py \
+            tests/test_endpoints/test_chat/test_field_input/test_types.py \
+            tests/test_endpoints/test_chat/test_field_input/test_slot_service.py \
+            tests/test_endpoints/test_paper_generation/test_types.py \
+            tests/test_endpoints/test_protocol_debug/test_types.py \
+            tests/test_endpoints/test_code_edit/test_logic.py \
+            tests/test_endpoints/test_library/test_router.py
+
+      - name: Build distributions
+        working-directory: packages/masterbrain
+        run: uv build
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: packages/masterbrain/dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

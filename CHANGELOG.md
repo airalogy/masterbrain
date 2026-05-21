@@ -17,6 +17,7 @@
 ### 变更
 
 - 新增推荐启动入口 `masterbrain-studio`；旧入口 `masterbrain-desktop` 标记为废弃兼容别名，并将在未来版本移除。
+- 新增基于 GitHub Actions 和 PyPI Trusted Publishing 的 `masterbrain` Python 包发布流程，推送 `v*` tag 时自动校验版本、运行 release 测试、构建并发布到 PyPI。
 
 ### 新增功能
 
