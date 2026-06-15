@@ -7,7 +7,7 @@ Masterbrain publishes the `masterbrain` Python package to PyPI from GitHub Actio
 ## Release Flow
 
 1. Update the package version in `packages/masterbrain/pyproject.toml`.
-2. Add the matching top entry to `CHANGELOG.md`.
+2. Add matching top entries to `CHANGELOG.md` and `CHANGELOG.zh-CN.md`.
 3. Refresh `packages/masterbrain/uv.lock` so `uv sync --locked --dev` continues to work.
 4. Merge the release-prep change to `main`.
 5. Push the matching Git tag, for example `git tag v0.8.1 && git push origin v0.8.1`.
@@ -56,6 +56,7 @@ Configure this once in the PyPI project settings:
 
 ## Notes
 
-- Normal feature work should not bump versions or edit `CHANGELOG.md` unless it is explicitly release preparation.
-- Keep the intended Git tag and `CHANGELOG.md` entry aligned with the version in `packages/masterbrain/pyproject.toml`.
+- Normal feature work should not bump versions or edit changelogs unless it is explicitly release preparation.
+- Keep the intended Git tag, both changelog entries, and the version in `packages/masterbrain/pyproject.toml` aligned.
+- `CHANGELOG.md` is the default English changelog; `CHANGELOG.zh-CN.md` is the Chinese version and should be kept in sync.
 - The PyPI workflow publishes only the Python package under `packages/masterbrain`; Studio frontend artifacts are not uploaded to PyPI as separate npm packages.

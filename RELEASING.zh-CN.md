@@ -7,7 +7,7 @@ Masterbrain 会在推送类似 `v0.8.1` 的版本标签时，通过 GitHub Actio
 ## 发布流程
 
 1. 更新 `packages/masterbrain/pyproject.toml` 中的包版本。
-2. 在 `CHANGELOG.md` 顶部补上对应版本条目。
+2. 在 `CHANGELOG.md` 和 `CHANGELOG.zh-CN.md` 顶部补上对应版本条目。
 3. 刷新 `packages/masterbrain/uv.lock`，保证 `uv sync --locked --dev` 仍然可用。
 4. 将 release-prep 改动合并到 `main`。
 5. 推送对应的 Git tag，例如 `git tag v0.8.1 && git push origin v0.8.1`。
@@ -56,6 +56,7 @@ uv version --bump major
 
 ## 说明
 
-- 普通功能开发不应修改版本号或 `CHANGELOG.md`，除非当前改动就是明确的 release preparation。
-- Git tag、`CHANGELOG.md` 和 `packages/masterbrain/pyproject.toml` 中的版本号应保持一致。
+- 普通功能开发不应修改版本号或 changelog，除非当前改动就是明确的 release preparation。
+- Git tag、两份 changelog 条目和 `packages/masterbrain/pyproject.toml` 中的版本号应保持一致。
+- `CHANGELOG.md` 是默认英文版；`CHANGELOG.zh-CN.md` 是中文版，两者需要同步维护。
 - PyPI workflow 只发布 `packages/masterbrain` 下的 Python 包；Studio 前端不会作为独立 npm 包上传到 PyPI。

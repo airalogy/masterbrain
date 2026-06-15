@@ -6,6 +6,8 @@ import pytest
 
 from masterbrain.endpoints.code_edit.logic import (
     OpenCodeRunResult,
+    _workspace_namespace,
+    _sync_workspace,
     build_code_edit_prompt,
     compute_workspace_changes,
     generate_code_edit_result,
@@ -106,6 +108,42 @@ def test_compute_workspace_changes_reports_create_modify_delete():
         "deleted",
         "modified",
     ]
+
+
+def test_sync_workspace_removes_stale_files(tmp_path: Path):
+    stale_path = tmp_path / "helper.py"
+    stale_path.write_text("print('stale')\n", encoding="utf-8")
+
+    code_edit_input = CodeEditInput(
+        prompt="Explain the protocol.",
+        files=[
+            WorkspaceFile(
+                path="protocol.aimd",
+                content="# Protocol",
+                type="aimd",
+            )
+        ],
+    )
+
+    before_state = _sync_workspace(tmp_path, code_edit_input)
+
+    assert before_state == {"protocol.aimd": "# Protocol"}
+    assert not stale_path.exists()
+    assert (tmp_path / "protocol.aimd").read_text(encoding="utf-8") == "# Protocol"
+
+
+def test_workspace_namespace_uses_user_prefix_without_editor_suffix():
+    assert (
+        _workspace_namespace("user:user-123:editor:chat-abc")
+        == "user:user-123"
+    )
+
+
+def test_workspace_namespace_hashes_untrusted_direct_ids():
+    namespace = _workspace_namespace("direct-editor-workspace")
+
+    assert namespace.startswith("workspace:")
+    assert "direct-editor-workspace" not in namespace
 
 
 @pytest.mark.asyncio

@@ -1,15 +1,19 @@
 __all__ = [
     "OpenCodeRuntime",
+    "OpenCodeRuntimeManager",
     "build_code_edit_prompt",
     "compute_workspace_changes",
     "generate_code_edit_result",
+    "shutdown_code_edit_runtime_manager",
 ]
 
 import asyncio
 import ast
+import hashlib
 import json
 import logging
 import os
+import shutil
 import socket
 import tempfile
 import tomllib
@@ -61,6 +65,15 @@ SUPPORTED_EDIT_SUFFIXES = {
 ALLOWED_EDIT_PATHS = {"protocol.aimd", "model.py", "assigner.py", "protocol.toml"}
 IGNORED_TOP_LEVEL_NAMES = {"opencode.json", "AGENTS.md"}
 OPENCODE_LOG_TAIL_LIMIT = 40
+CODE_EDIT_IDLE_TIMEOUT_SECONDS = int(
+    os.getenv("MASTERBRAIN_CODE_EDIT_IDLE_TIMEOUT_SECONDS", "900")
+)
+CODE_EDIT_MAX_MANAGED_RUNTIMES = int(
+    os.getenv("MASTERBRAIN_CODE_EDIT_MAX_MANAGED_RUNTIMES", "16")
+)
+CODE_EDIT_MAX_MANAGED_RUNTIMES_PER_NAMESPACE = int(
+    os.getenv("MASTERBRAIN_CODE_EDIT_MAX_MANAGED_RUNTIMES_PER_NAMESPACE", "2")
+)
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +89,25 @@ class ProviderConfig:
 class OpenCodeRunResult:
     message: str
     execution_log: list[str]
+
+
+@dataclass(frozen=True)
+class OpenCodeServerProcess:
+    base_url: str
+    opencode_binary: Path
+    process: asyncio.subprocess.Process
+    process_logs: "ProcessLogBuffer"
+
+
+@dataclass
+class ManagedOpenCodeRuntimeEntry:
+    workspace_id: str
+    workspace_dir: Path
+    config_key: str
+    server: OpenCodeServerProcess
+    lock: asyncio.Lock
+    last_used_at: float
+    active_requests: int = 0
 
 
 @dataclass
@@ -386,6 +418,20 @@ def _materialize_workspace(root: Path, code_edit_input: CodeEditInput) -> dict[s
     return snapshot
 
 
+def _sync_workspace(root: Path, code_edit_input: CodeEditInput) -> dict[str, str]:
+    incoming_paths = {PurePosixPath(file.path).as_posix() for file in code_edit_input.files}
+    for path in root.rglob("*"):
+        if not path.is_file():
+            continue
+        rel_path = path.relative_to(root).as_posix()
+        if _is_hidden_or_internal(rel_path):
+            continue
+        if rel_path not in incoming_paths:
+            path.unlink()
+
+    return _materialize_workspace(root, code_edit_input)
+
+
 def _collect_workspace_state(root: Path) -> dict[str, str]:
     state: dict[str, str] = {}
     for path in root.rglob("*"):
@@ -516,8 +562,10 @@ async def _terminate_process(process: asyncio.subprocess.Process) -> None:
         await process.wait()
 
 
-@asynccontextmanager
-async def _opencode_server(workspace_dir: Path, config: dict):
+async def _start_opencode_server(
+    workspace_dir: Path,
+    config: dict,
+) -> OpenCodeServerProcess:
     opencode_binary = resolve_opencode_binary()
     if not opencode_binary:
         raise RuntimeError(missing_opencode_message())
@@ -541,12 +589,27 @@ async def _opencode_server(workspace_dir: Path, config: dict):
     process_logs = ProcessLogBuffer()
     process_logs.start(process)
 
+    await _wait_for_server(port, process, process_logs)
+    return OpenCodeServerProcess(
+        base_url=f"http://127.0.0.1:{port}",
+        opencode_binary=opencode_binary,
+        process=process,
+        process_logs=process_logs,
+    )
+
+
+async def _stop_opencode_server(server: OpenCodeServerProcess) -> None:
+    await _terminate_process(server.process)
+    await server.process_logs.wait()
+
+
+@asynccontextmanager
+async def _opencode_server(workspace_dir: Path, config: dict):
+    server = await _start_opencode_server(workspace_dir, config)
     try:
-        await _wait_for_server(port, process, process_logs)
-        yield f"http://127.0.0.1:{port}", opencode_binary
+        yield server.base_url, server.opencode_binary
     finally:
-        await _terminate_process(process)
-        await process_logs.wait()
+        await _stop_opencode_server(server)
 
 
 class OpenCodeRuntime:
@@ -569,72 +632,339 @@ class OpenCodeRuntime:
         ):
             _record_execution(
                 execution_log,
-                f"OpenCode runtime: {opencode_binary}",
+                "OpenCode runtime is available.",
             )
             _record_execution(
                 execution_log,
-                f"OpenCode server is ready at {base_url}",
+                "OpenCode server is ready.",
             )
-            timeout = httpx.Timeout(300.0, connect=10.0, read=300.0, write=60.0)
-            async with httpx.AsyncClient(base_url=base_url, timeout=timeout) as client:
-                session_response = await client.post(
-                    "/session",
-                    json={"title": "Masterbrain Code Edit"},
-                )
-                session_response.raise_for_status()
-                session_id = session_response.json()["id"]
-                _record_execution(
-                    execution_log,
-                    f"Created OpenCode session {session_id}.",
-                )
+            return await _run_opencode_message(
+                base_url,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                provider_id=provider_id,
+                model_id=model_id,
+                execution_log=execution_log,
+            )
 
-                chat_response = await client.post(
-                    f"/session/{session_id}/message",
-                    json={
-                        "providerID": provider_id,
-                        "modelID": model_id,
-                        "system": system_prompt,
-                        "parts": [{"type": "text", "text": user_prompt}],
-                    },
-                )
-                chat_response.raise_for_status()
-                assistant_message = chat_response.json()
-                if assistant_message.get("error"):
-                    raise RuntimeError(
-                        f"OpenCode returned an error: {assistant_message['error']}"
-                    )
-                _record_execution(
-                    execution_log,
-                    f"Submitted edit request to {provider_id}/{model_id}.",
-                )
 
-                messages_response = await client.get(f"/session/{session_id}/message")
-                messages_response.raise_for_status()
-                messages = messages_response.json()
-                _record_execution(
-                    execution_log,
-                    f"Fetched {len(messages)} message(s) from OpenCode session history.",
-                )
-
-        summary = "OpenCode completed without returning a text summary."
-        for message in reversed(messages):
-            info = message.get("info", {})
-            if info.get("role") != "assistant":
-                continue
-            text_parts = [
-                part.get("text", "").strip()
-                for part in message.get("parts", [])
-                if part.get("type") == "text" and part.get("text")
-            ]
-            if text_parts:
-                summary = "\n\n".join(text_parts)
-                break
-
+async def _run_opencode_message(
+    base_url: str,
+    *,
+    system_prompt: str,
+    user_prompt: str,
+    provider_id: str,
+    model_id: str,
+    execution_log: list[str],
+) -> OpenCodeRunResult:
+    timeout = httpx.Timeout(300.0, connect=10.0, read=300.0, write=60.0)
+    async with httpx.AsyncClient(base_url=base_url, timeout=timeout) as client:
+        session_response = await client.post(
+            "/session",
+            json={"title": "Masterbrain Code Edit"},
+        )
+        session_response.raise_for_status()
+        session_id = session_response.json()["id"]
         _record_execution(
             execution_log,
-            f"Assistant summary: {_trim_for_log(summary)}",
+            f"Created OpenCode session {session_id}.",
         )
-        return OpenCodeRunResult(message=summary, execution_log=execution_log)
+
+        chat_response = await client.post(
+            f"/session/{session_id}/message",
+            json={
+                "providerID": provider_id,
+                "modelID": model_id,
+                "system": system_prompt,
+                "parts": [{"type": "text", "text": user_prompt}],
+            },
+        )
+        chat_response.raise_for_status()
+        assistant_message = chat_response.json()
+        if assistant_message.get("error"):
+            raise RuntimeError(f"OpenCode returned an error: {assistant_message['error']}")
+        _record_execution(
+            execution_log,
+            f"Submitted edit request to {provider_id}/{model_id}.",
+        )
+
+        messages_response = await client.get(f"/session/{session_id}/message")
+        messages_response.raise_for_status()
+        messages = messages_response.json()
+        _record_execution(
+            execution_log,
+            f"Fetched {len(messages)} message(s) from OpenCode session history.",
+        )
+
+    summary = "OpenCode completed without returning a text summary."
+    for message in reversed(messages):
+        info = message.get("info", {})
+        if info.get("role") != "assistant":
+            continue
+        text_parts = [
+            part.get("text", "").strip()
+            for part in message.get("parts", [])
+            if part.get("type") == "text" and part.get("text")
+        ]
+        if text_parts:
+            summary = "\n\n".join(text_parts)
+            break
+
+    _record_execution(
+        execution_log,
+        f"Assistant summary: {_trim_for_log(summary)}",
+    )
+    return OpenCodeRunResult(message=summary, execution_log=execution_log)
+
+
+def _opencode_config_key(config: dict) -> str:
+    encoded = json.dumps(config, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _workspace_label(workspace_id: str) -> str:
+    return hashlib.sha256(workspace_id.encode("utf-8")).hexdigest()[:16]
+
+
+def _workspace_namespace(workspace_id: str) -> str:
+    parts = workspace_id.split(":", 3)
+    if len(parts) >= 2 and parts[0] == "user" and parts[1]:
+        return f"user:{parts[1]}"
+    return f"workspace:{_workspace_label(workspace_id)}"
+
+
+class OpenCodeRuntimeManager:
+    """Session-scoped OpenCode server manager.
+
+    The manager reuses the OpenCode server process per workspace_id, but each
+    request still creates a fresh OpenCode session. Browser-supplied files are
+    synchronized into the workspace before every request.
+    """
+
+    def __init__(
+        self,
+        *,
+        idle_timeout_seconds: int = CODE_EDIT_IDLE_TIMEOUT_SECONDS,
+        max_runtimes: int = CODE_EDIT_MAX_MANAGED_RUNTIMES,
+    ) -> None:
+        self.idle_timeout_seconds = idle_timeout_seconds
+        self.max_runtimes = max_runtimes
+        self._entries: dict[str, ManagedOpenCodeRuntimeEntry] = {}
+        self._lock = asyncio.Lock()
+
+    async def run(
+        self,
+        workspace_id: str,
+        code_edit_input: CodeEditInput,
+        *,
+        system_prompt: str,
+        user_prompt: str,
+        provider_id: str,
+        model_id: str,
+        config: dict,
+    ) -> tuple[OpenCodeRunResult, dict[str, str], dict[str, str], list[str]]:
+        execution_log: list[str] = []
+        entry = await self._get_or_create_entry(workspace_id, config, execution_log)
+
+        try:
+            async with entry.lock:
+                entry.last_used_at = asyncio.get_running_loop().time()
+                before_state = _sync_workspace(entry.workspace_dir, code_edit_input)
+                _record_execution(
+                    execution_log,
+                    f"Synchronized {len(before_state)} workspace file(s) in managed workspace.",
+                )
+
+                run_result = await _run_opencode_message(
+                    entry.server.base_url,
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    provider_id=provider_id,
+                    model_id=model_id,
+                    execution_log=execution_log,
+                )
+
+                after_state = _collect_workspace_state(entry.workspace_dir)
+                entry.last_used_at = asyncio.get_running_loop().time()
+                _record_execution(
+                    execution_log,
+                    f"Collected {len(after_state)} file(s) from managed workspace snapshot.",
+                )
+        finally:
+            await self._release_entry(entry)
+
+        return run_result, before_state, after_state, execution_log
+
+    async def shutdown(self) -> None:
+        async with self._lock:
+            entries = list(self._entries.values())
+            self._entries.clear()
+
+        for entry in entries:
+            await self._shutdown_entry(entry)
+
+    async def _get_or_create_entry(
+        self,
+        workspace_id: str,
+        config: dict,
+        execution_log: list[str],
+    ) -> ManagedOpenCodeRuntimeEntry:
+        config_key = _opencode_config_key(config)
+        label = _workspace_label(workspace_id)
+
+        async with self._lock:
+            await self._cleanup_idle_locked(execution_log)
+
+            existing = self._entries.get(workspace_id)
+            if (
+                existing
+                and existing.config_key == config_key
+                and existing.server.process.returncode is None
+            ):
+                existing.active_requests += 1
+                _record_execution(
+                    execution_log,
+                    f"Reusing managed OpenCode runtime {label}.",
+                )
+                return existing
+
+            if existing:
+                if existing.lock.locked() or existing.active_requests > 0:
+                    raise RuntimeError(
+                        "OpenCode runtime is busy and cannot be restarted for a model/configuration change. Please retry after the current edit finishes."
+                    )
+                await self._shutdown_entry(existing)
+                self._entries.pop(workspace_id, None)
+
+            await self._evict_for_namespace_capacity_locked(workspace_id, execution_log)
+            namespace_count = self._count_namespace_locked(workspace_id)
+            if namespace_count >= CODE_EDIT_MAX_MANAGED_RUNTIMES_PER_NAMESPACE:
+                raise RuntimeError(
+                    "OpenCode runtime capacity reached for this user. Please retry after another editor session becomes idle."
+                )
+
+            await self._evict_for_capacity_locked(execution_log)
+            if len(self._entries) >= self.max_runtimes:
+                raise RuntimeError(
+                    "OpenCode runtime capacity reached. Please retry after another editor session becomes idle."
+                )
+
+            workspace_dir = Path(
+                tempfile.mkdtemp(prefix=f"masterbrain-opencode-{label}-")
+            )
+            try:
+                server = await _start_opencode_server(workspace_dir, config)
+            except Exception:
+                shutil.rmtree(workspace_dir, ignore_errors=True)
+                raise
+            entry = ManagedOpenCodeRuntimeEntry(
+                workspace_id=workspace_id,
+                workspace_dir=workspace_dir,
+                config_key=config_key,
+                server=server,
+                lock=asyncio.Lock(),
+                last_used_at=asyncio.get_running_loop().time(),
+                active_requests=1,
+            )
+            self._entries[workspace_id] = entry
+            _record_execution(
+                execution_log,
+                f"Started managed OpenCode runtime {label}.",
+            )
+            return entry
+
+    async def _cleanup_idle_locked(self, execution_log: list[str]) -> None:
+        if self.idle_timeout_seconds <= 0:
+            return
+
+        now = asyncio.get_running_loop().time()
+        idle_entries = [
+            (workspace_id, entry)
+            for workspace_id, entry in self._entries.items()
+            if not entry.lock.locked()
+            and entry.active_requests == 0
+            and now - entry.last_used_at >= self.idle_timeout_seconds
+        ]
+        for workspace_id, entry in idle_entries:
+            await self._shutdown_entry(entry)
+            self._entries.pop(workspace_id, None)
+            _record_execution(
+                execution_log,
+                f"Stopped idle managed OpenCode runtime {_workspace_label(workspace_id)}.",
+            )
+
+    async def _evict_for_capacity_locked(self, execution_log: list[str]) -> None:
+        if len(self._entries) < self.max_runtimes:
+            return
+
+        evictable = [
+            (workspace_id, entry)
+            for workspace_id, entry in self._entries.items()
+            if not entry.lock.locked() and entry.active_requests == 0
+        ]
+        if not evictable:
+            return
+
+        workspace_id, entry = min(evictable, key=lambda item: item[1].last_used_at)
+        await self._shutdown_entry(entry)
+        self._entries.pop(workspace_id, None)
+        _record_execution(
+            execution_log,
+            f"Evicted least recently used managed OpenCode runtime {_workspace_label(workspace_id)}.",
+        )
+
+    async def _evict_for_namespace_capacity_locked(
+        self,
+        workspace_id: str,
+        execution_log: list[str],
+    ) -> None:
+        if CODE_EDIT_MAX_MANAGED_RUNTIMES_PER_NAMESPACE <= 0:
+            return
+        if self._count_namespace_locked(workspace_id) < CODE_EDIT_MAX_MANAGED_RUNTIMES_PER_NAMESPACE:
+            return
+
+        namespace = _workspace_namespace(workspace_id)
+        evictable = [
+            (entry_workspace_id, entry)
+            for entry_workspace_id, entry in self._entries.items()
+            if _workspace_namespace(entry_workspace_id) == namespace
+            and not entry.lock.locked()
+            and entry.active_requests == 0
+        ]
+        if not evictable:
+            return
+
+        evicted_workspace_id, entry = min(evictable, key=lambda item: item[1].last_used_at)
+        await self._shutdown_entry(entry)
+        self._entries.pop(evicted_workspace_id, None)
+        _record_execution(
+            execution_log,
+            f"Evicted least recently used managed OpenCode runtime for namespace {_workspace_label(namespace)}.",
+        )
+
+    def _count_namespace_locked(self, workspace_id: str) -> int:
+        namespace = _workspace_namespace(workspace_id)
+        return sum(
+            1
+            for entry_workspace_id in self._entries
+            if _workspace_namespace(entry_workspace_id) == namespace
+        )
+
+    async def _release_entry(self, entry: ManagedOpenCodeRuntimeEntry) -> None:
+        async with self._lock:
+            entry.active_requests = max(entry.active_requests - 1, 0)
+            entry.last_used_at = asyncio.get_running_loop().time()
+
+    async def _shutdown_entry(self, entry: ManagedOpenCodeRuntimeEntry) -> None:
+        await _stop_opencode_server(entry.server)
+        shutil.rmtree(entry.workspace_dir, ignore_errors=True)
+
+
+_CODE_EDIT_RUNTIME_MANAGER = OpenCodeRuntimeManager()
+
+
+async def shutdown_code_edit_runtime_manager() -> None:
+    await _CODE_EDIT_RUNTIME_MANAGER.shutdown()
 
 
 async def generate_code_edit_result(
@@ -642,7 +972,6 @@ async def generate_code_edit_result(
     runtime: OpenCodeRuntime | None = None,
 ) -> CodeEditOutput:
     validate_api_key = runtime is None
-    runtime = runtime or OpenCodeRuntime()
     warnings: list[str] = []
     execution_log: list[str] = []
 
@@ -674,29 +1003,47 @@ async def generate_code_edit_result(
         f"Selected provider {provider.provider_id}/{provider.model_id}.",
     )
 
-    with tempfile.TemporaryDirectory(prefix="masterbrain-opencode-") as tmp_dir:
-        workspace_dir = Path(tmp_dir)
-        before_state = _materialize_workspace(workspace_dir, code_edit_input)
-        _record_execution(
-            execution_log,
-            f"Materialized {len(before_state)} workspace file(s) in {workspace_dir}.",
-        )
-
-        run_result = await runtime.run(
-            workspace_dir,
+    if runtime is None and code_edit_input.workspace_id:
+        (
+            run_result,
+            before_state,
+            after_state,
+            managed_execution_log,
+        ) = await _CODE_EDIT_RUNTIME_MANAGER.run(
+            code_edit_input.workspace_id,
+            code_edit_input,
             system_prompt=SYSTEM_PROMPT,
             user_prompt=user_prompt,
             provider_id=provider.provider_id,
             model_id=provider.model_id,
             config=provider.config,
         )
-        execution_log.extend(run_result.execution_log)
+        execution_log.extend(managed_execution_log)
+    else:
+        runtime = runtime or OpenCodeRuntime()
+        with tempfile.TemporaryDirectory(prefix="masterbrain-opencode-") as tmp_dir:
+            workspace_dir = Path(tmp_dir)
+            before_state = _sync_workspace(workspace_dir, code_edit_input)
+            _record_execution(
+                execution_log,
+                f"Materialized {len(before_state)} workspace file(s) in {workspace_dir}.",
+            )
 
-        after_state = _collect_workspace_state(workspace_dir)
-        _record_execution(
-            execution_log,
-            f"Collected {len(after_state)} file(s) from the updated workspace snapshot.",
-        )
+            run_result = await runtime.run(
+                workspace_dir,
+                system_prompt=SYSTEM_PROMPT,
+                user_prompt=user_prompt,
+                provider_id=provider.provider_id,
+                model_id=provider.model_id,
+                config=provider.config,
+            )
+            execution_log.extend(run_result.execution_log)
+
+            after_state = _collect_workspace_state(workspace_dir)
+            _record_execution(
+                execution_log,
+                f"Collected {len(after_state)} file(s) from the updated workspace snapshot.",
+            )
 
     changed_files, change_warnings = compute_workspace_changes(before_state, after_state)
     warnings.extend(change_warnings)

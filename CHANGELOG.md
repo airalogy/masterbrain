@@ -1,101 +1,117 @@
 # Changelog
 
+[中文版](CHANGELOG.zh-CN.md)
+
 ## Unreleased
 
-- 暂无。
+- No changes yet.
+
+## v0.9.0
+
+### Added
+
+- Added OpenCode-backed `endpoints/code_edit` support, allowing Airalogy Protocol Editor to understand and modify the current `protocol.aimd`, `model.py`, `assigner.py`, and `protocol.toml` through conversation.
+- `code_edit` now supports `workspace_id`, so an editing session can reuse its OpenCode server process while each request still creates a fresh OpenCode session and treats the complete browser-provided file snapshot as the source of truth.
+
+### Security and Stability
+
+- Limited `code_edit` file changes to the four core Protocol Editor files and ignored out-of-scope edits such as helper files.
+- Added syntax validation for returned AIMD, Python, and TOML changes, with risks surfaced to callers as warnings.
+- Added a session-scoped OpenCode runtime manager with idle-timeout cleanup, a global runtime cap, a per-user namespace cap, same-workspace serialization, and service-shutdown cleanup.
+- Tightened the `code_edit` execution log so it no longer exposes server temporary directories, the OpenCode binary path, or localhost ports to the frontend.
 
 ## v0.8.0
 
-### 架构调整
+### Architecture
 
-- Python 发布包从 `apps/api` 迁移到 `packages/masterbrain`，让发布包和应用目录边界更清晰。
-- Vue 前端应用从 `apps/web` 更名为 `apps/studio`，使应用命名更贴近 Masterbrain Studio 的独立前端定位。
-- 新增 `masterbrain.core` 与 `masterbrain.providers`，建立无状态 AI core、模型供应商适配层和 API endpoint 的分层边界。
-- 模型调用层改为以 LiteLLM 为默认 provider 兼容适配，保留 Masterbrain 自己的 core/workflow 边界，并在依赖约束中排除已知受影响的 LiteLLM 版本 `1.82.7`、`1.82.8`。
-- 新增 `openai`、`qwen`、`all-providers`、`api` optional dependency extras，为后续更轻量的 core 安装方式预留接口。
+- Moved the Python distribution package from `apps/api` to `packages/masterbrain`, making the package and application boundaries clearer.
+- Renamed the Vue frontend app from `apps/web` to `apps/studio`, aligning the app name with Masterbrain Studio as an independent frontend.
+- Added `masterbrain.core` and `masterbrain.providers`, establishing clearer boundaries between the stateless AI core, model-provider adapters, and API endpoints.
+- Updated the model invocation layer to use LiteLLM as the default provider-compatible adapter while preserving Masterbrain's own core/workflow boundaries, and excluded known affected LiteLLM versions `1.82.7` and `1.82.8` from dependency constraints.
+- Added `openai`, `qwen`, `all-providers`, and `api` optional dependency extras to prepare for lighter core installation options.
 
-### 变更
+### Changed
 
-- 新增推荐启动入口 `masterbrain-studio`；旧入口 `masterbrain-desktop` 标记为废弃兼容别名，并将在未来版本移除。
-- 新增基于 GitHub Actions 和 PyPI Trusted Publishing 的 `masterbrain` Python 包发布流程，推送 `v*` tag 时自动校验版本、运行 release 测试、构建并发布到 PyPI。
+- Added the recommended `masterbrain-studio` startup entry point. The old `masterbrain-desktop` entry point remains as a deprecated compatibility alias and will be removed in a future version.
+- Added a Python package release flow for `masterbrain` based on GitHub Actions and PyPI Trusted Publishing. Pushing a `v*` tag now validates the version, runs release tests, builds distributions, and publishes to PyPI.
 
-### 新增功能
+### Added
 
-- `packages/masterbrain` 现在直接依赖已发布的 `airalogy` 包，并复用 `.aira` 归档的校验与解包逻辑。
-- 新增本地 archive library：可把 `.aira` 导入 SQLite，本地持久化 protocol 和 record 元数据与 record JSON。
-- 桌面启动器现在支持直接传入 `.aira` 文件路径作为启动文档。
-- Web UI 左侧栏新增 `Library` 视图，可导入 `.aira`、浏览 protocol/record，并把库中的 protocol 重新装载到当前 workspace。
-- `apps/studio` 直接依赖 npm 已发布的 `@airalogy/aimd-editor`、`@airalogy/aimd-renderer`、`@airalogy/aimd-recorder`，接入 AIMD Monaco 语法和 AIMD renderer，替换原先本地维护的轻量 `.aimd` 解析/预览实现。
-- 新增跨平台桌面打包 CLI `masterbrain-build-desktop`，可额外生成 macOS `.app`、Windows portable 包与安装器脚本、Linux portable 压缩包，并补充 macOS / Windows / Linux 平台支持矩阵文档。
+- `packages/masterbrain` now depends directly on the released `airalogy` package and reuses `.aira` archive validation and unpacking logic.
+- Added a local archive library that can import `.aira` files into SQLite and persist protocol metadata, record metadata, and record JSON locally.
+- The desktop launcher now supports passing a `.aira` file path directly as the startup document.
+- Added a `Library` view to the left sidebar in the web UI, allowing users to import `.aira` files, browse protocols and records, and reload library protocols into the current workspace.
+- `apps/studio` now depends directly on the published npm packages `@airalogy/aimd-editor`, `@airalogy/aimd-renderer`, and `@airalogy/aimd-recorder`, integrating AIMD Monaco syntax and the AIMD renderer while replacing the previously maintained lightweight local `.aimd` parser/preview implementation.
+- Added the cross-platform desktop packaging CLI `masterbrain-build-desktop`, which can also generate macOS `.app` bundles, Windows portable packages and installer scripts, Linux portable archives, plus macOS / Windows / Linux platform support matrix documentation.
 
 ## v0.7.0
 
-### 新增功能
+### Added
 
-- `endpoints/chat/qa/language` 现在支持开启：1. 思考模式；2. 联网搜索
-  端点输入结构如下：
+- `endpoints/chat/qa/language` now supports: 1. thinking mode; 2. web search.
+  The endpoint input structure is:
 
   ```json
   {
       "model": {
-          "name": "qwen3.5-flash", // 可以为qwen3.5-flash、qwen3.5-plus
-          "enable_thinking": true, // 可以为true或false
-          "enable_search": true // 可以为true或false
+          "name": "qwen3.5-flash", // Can be qwen3.5-flash or qwen3.5-plus
+          "enable_thinking": true, // Can be true or false
+          "enable_search": true // Can be true or false
       },
       "messages": [
           {
               "role": "user",
-              "content": "思考下你是谁？"
+              "content": "Think about who you are."
           }
       ]
   }
   ```
 
-  返还为流式字符串。
+  The response is returned as a streaming string.
 
-  完整的流式返回字符串可如下：
+  A complete streaming response can look like:
 
   ```text
   <think>
-  思考内容...
+  Thinking content...
   </think>
-  我是Airalogy Masterbrain。
+  I am Airalogy Masterbrain.
   ```
 
-  注意如果`enable_thinking`为`true`，则会返回思考过程，并使用`<think>`标签包裹。如果为`false`，则只返回最终结果，并不会有`<think>`标签。
+  Note that when `enable_thinking` is `true`, the thinking process is returned and wrapped in `<think>` tags. When it is `false`, only the final answer is returned and no `<think>` tags are included.
 
-  @荣璐 注意前端要能够自动渲染这个标签，以和正式文本相互区分。
+  @荣璐 The frontend should automatically render this tag separately from the final answer text.
 
 ### TODO
 
 - `endpoints/chat/qa/vision`
 - `endpoints/stt`
 
-等端口还需要重构修改 @攀忠
+These endpoints still need to be refactored. @攀忠
 
 ## v0.6.0
 
-- 完成AIRA功能及其API。
+- Completed the AIRA feature and its API.
 
 ## v0.2.1
 
-- `ChatDoc`中移除`chat_env`字段，以减少嵌套复杂度。详见：[`masterbrain.models.chat.ChatDoc`](/masterbrain/models/chat.py)。
+- Removed the `chat_env` field from `ChatDoc` to reduce nesting complexity. See [`masterbrain.models.chat.ChatDoc`](/masterbrain/models/chat.py).
 
 ## v0.2.0
 
-- `chat`端口已经更新支持最新的`ChatDoc`作为数据模型的输入。详见：[`masterbrain.models.chat.ChatDoc`](/masterbrain/models/chat.py)。
-- 更新支持最新`gpt-4o-mini`模型。
+- Updated the `chat` endpoint to support the latest `ChatDoc` as the input data model. See [`masterbrain.models.chat.ChatDoc`](/masterbrain/models/chat.py).
+- Added support for the latest `gpt-4o-mini` model.
 
 ## v0.1.0
 
-- `chat`端口支持通义千问模型：`qwen-long`。
-  可以启动FastAPI后使用[chat_doc_qwen.jsonc](test/test_fastapi/test_router/test_chat/chat_doc_qwen.jsonc)在<http://127.0.0.1:8000/docs#/default/post_chat_api_chat_post>中进行测试（注意测试的时候删除jsonc中的注释，变为纯净的json格式）。
-- 调整了调用tool时的`assistant`返回值，将`content`字段的`null`值改为`""`。这里的主要原因是，当为`null`时，OpenAI的模型能够正常运行，但Qwen的模型会报错。但改为`""`时，OpenAI和Qwen的模型都能够正常运行。因此，为了兼容性，将`null`改为`""`。（当然，这里Qwen报错的原因是Qwen的模型对`null`值的处理不够友好，这里只是为了兼容性考虑。）
+- The `chat` endpoint supports the Tongyi Qianwen model `qwen-long`.
+  After starting FastAPI, you can test it with [chat_doc_qwen.jsonc](test/test_fastapi/test_router/test_chat/chat_doc_qwen.jsonc) at <http://127.0.0.1:8000/docs#/default/post_chat_api_chat_post>. Remove comments from the jsonc file before testing so it becomes valid JSON.
+- Adjusted the returned `assistant` value when calling tools by changing the `content` field from `null` to `""`. The main reason is that OpenAI models can run normally when the value is `null`, while Qwen models fail. When changed to `""`, both OpenAI and Qwen models work normally. Therefore, this change was made for compatibility. The underlying issue is that Qwen models are less tolerant of `null`; this is only a compatibility adjustment.
 
     ```json
     {
-        "role": "assistant", 
-        "content": null, 
+        "role": "assistant",
+        "content": null,
         "tool_calls": [
             ...
         ]
@@ -104,12 +120,12 @@
 
     ```json
     {
-        "role": "assistant", 
-        "content": "", 
+        "role": "assistant",
+        "content": "",
         "tool_calls": [
             ...
         ]
     }
     ```
 
-- TODO: Qwen只支持Assistant-User交替的对话模式（其他商业模型也有类似的情况，比如文心一言），不支持Assistant-Assistant-User的对话模式。目前`scenario_messages`中的加入会导致出现Assistant-Assistant-User的对话模式。需要调整`scenario_messages`的注入逻辑还需要调整。
+- TODO: Qwen only supports alternating Assistant-User conversation patterns, as do some other commercial models such as ERNIE Bot. It does not support Assistant-Assistant-User conversation patterns. The current injection of `scenario_messages` can produce an Assistant-Assistant-User pattern, so the injection logic still needs to be adjusted.

@@ -55,6 +55,11 @@ class CodeEditInput(BaseModel):
 
     model: SupportedModels = DEFAULT_MODEL
     prompt: str = Field(description="The user's current request")
+    workspace_id: str | None = Field(
+        default=None,
+        max_length=240,
+        description="Stable editor workspace identifier used for managed runtime reuse.",
+    )
     files: list[WorkspaceFile] = Field(default_factory=list)
     active_file_path: str | None = Field(
         default=None,

@@ -4,6 +4,7 @@ Main file for FastAPI server.
 
 import os
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -36,9 +37,17 @@ from masterbrain.endpoints import (
     workspace_router,
 )
 from masterbrain.endpoints.aira.router import aira_router
+from masterbrain.endpoints.code_edit.logic import shutdown_code_edit_runtime_manager
 from masterbrain.utils.llm import llm_http_exception
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    yield
+    await shutdown_code_edit_runtime_manager()
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
