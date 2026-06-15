@@ -12,6 +12,7 @@ from masterbrain.endpoints.protocol_check.logic.prompts import (
     USER_MESSAGE_PROTOCOL_CHECK_TEMPLATE_TAIL,
 )
 from masterbrain.endpoints.protocol_check.types import ProtocolCheckInput
+from masterbrain.utils.llm import qwen_chat_extra_body
 
 
 async def generate_stream(protocol_check_input: ProtocolCheckInput):
@@ -46,16 +47,21 @@ async def generate_stream(protocol_check_input: ProtocolCheckInput):
     client = select_client(protocol_check_input.model.name)
 
     # Create streaming response
-    response = await client.chat.completions.create(
+    request_kwargs = dict(
         messages=history,
         model=protocol_check_input.model.name,
         stream=True,
         timeout=1800,
-        extra_body={
-            "enable_thinking": protocol_check_input.model.enable_thinking,
-            "enable_search": protocol_check_input.model.enable_search,
-        },
     )
+    extra_body = qwen_chat_extra_body(
+        protocol_check_input.model.name,
+        enable_thinking=protocol_check_input.model.enable_thinking,
+        enable_search=protocol_check_input.model.enable_search,
+    )
+    if extra_body is not None:
+        request_kwargs["extra_body"] = extra_body
+
+    response = await client.chat.completions.create(**request_kwargs)
 
     buffer = ""
     content_started = False

@@ -33,27 +33,21 @@ async def test_generate_stream_success(model_name: str):
         chunks = [
             "I will generate an assigner.py file for you:\n\n",
             "```python\n",
-            "from airalogy.assigner import (\n",
-            "    AssignerBase,\n",
-            "    AssignerResult,\n",
-            "    assigner,\n",
-            ")\n\n\n",
-            "class Assigner(AssignerBase):\n",
-            "    @assigner(\n",
-            '        assigned_fields=["total_volume"],\n',
-            '        dependent_fields=["volume_a", "volume_b"],\n',
-            '        mode="auto",\n',
+            "from airalogy.assigner import AssignerResult, assigner\n\n\n",
+            "@assigner(\n",
+            '    assigned_fields=["total_volume"],\n',
+            '    dependent_fields=["volume_a", "volume_b"],\n',
+            '    mode="auto",\n',
+            ")\n",
+            "def calculate_total_volume(dependent_fields: dict) -> AssignerResult:\n",
+            '    volume_a = dependent_fields["volume_a"]\n',
+            '    volume_b = dependent_fields["volume_b"]\n',
+            "    total_volume = volume_a + volume_b\n",
+            "    return AssignerResult(\n",
+            "        assigned_fields={\n",
+            '            "total_volume": round(total_volume, 2),\n',
+            "        },\n",
             "    )\n",
-            "    @staticmethod\n",
-            "    def calculate_total_volume(dependent_data: dict) -> AssignerResult:\n",
-            '        volume_a = dependent_data["volume_a"]\n',
-            '        volume_b = dependent_data["volume_b"]\n',
-            "        total_volume = volume_a + volume_b\n",
-            "        return AssignerResult(\n",
-            "            assigned_fields={\n",
-            '                "total_volume": round(total_volume, 2),\n',
-            "            },\n",
-            "        )\n",
             "```",
         ]
         for chunk_content in chunks:
@@ -87,8 +81,9 @@ async def test_generate_stream_success(model_name: str):
         # Verify content was generated
         full_content = "".join(content_chunks)
         assert len(full_content) > 0
-        assert "class Assigner" in full_content
-        assert "AssignerBase" in full_content
+        assert "from airalogy.assigner import AssignerResult, assigner" in full_content
+        assert "class Assigner" not in full_content
+        assert "AssignerBase" not in full_content
         assert "def calculate_" in full_content
 
         # Verify client was called
@@ -112,9 +107,10 @@ async def test_generate_stream_code_block_filtering():
             "This is prefix text that should be filtered out\n",
             "```python\n",  # Start marker - should be filtered
             "# This is the required code content\n",
-            "from airalogy.assigner import AssignerBase\n",
-            "class Assigner(AssignerBase):\n",
-            "    pass\n",
+            "from airalogy.assigner import AssignerResult, assigner\n",
+            "@assigner(assigned_fields=[\"total_volume\"], dependent_fields=[\"volume_a\", \"volume_b\"], mode=\"auto\")\n",
+            "def calculate_total_volume(dependent_fields: dict) -> AssignerResult:\n",
+            "    return AssignerResult(assigned_fields={\"total_volume\": 1})\n",
             "```",  # End marker - should stop here
             "This is suffix text that should be filtered out",
         ]
@@ -147,7 +143,7 @@ async def test_generate_stream_code_block_filtering():
 
         # Should contain the code content but not the markers or surrounding text
         assert "# This is the required code content" in full_content
-        assert "class Assigner(AssignerBase):" in full_content
+        assert "def calculate_total_volume" in full_content
         assert "```python" not in full_content
         assert "```" not in full_content
         assert "prefix text" not in full_content
@@ -165,9 +161,10 @@ async def test_generate_stream_no_markers_fallback():
     async def mock_chunks_no_markers(self):
         # No markers, should fall back to streaming all content after max_tokens_wait
         chunks = [
-            "from airalogy.assigner import AssignerBase\n",
-            "class Assigner(AssignerBase):\n",
-            "    pass\n",
+            "from airalogy.assigner import AssignerResult, assigner\n",
+            "@assigner(assigned_fields=[\"total_volume\"], dependent_fields=[\"volume_a\", \"volume_b\"], mode=\"auto\")\n",
+            "def calculate_total_volume(dependent_fields: dict) -> AssignerResult:\n",
+            "    return AssignerResult(assigned_fields={\"total_volume\": 1})\n",
         ] * 5  # Repeat to exceed max_tokens_wait
         for chunk_content in chunks:
             chunk = AsyncMock()
@@ -196,7 +193,8 @@ async def test_generate_stream_no_markers_fallback():
 
         full_content = "".join(content_chunks)
         assert len(full_content) > 0
-        assert "AssignerBase" in full_content
+        assert "AssignerResult" in full_content
+        assert "AssignerBase" not in full_content
 
 
 @pytest.mark.asyncio
@@ -276,9 +274,10 @@ async def test_generate_stream_with_thinking_enabled():
         chunks = [
             "<thinking>\nThis requires generating an assigner file\n</thinking>\n",
             "```python\n",
-            "from airalogy.assigner import AssignerBase\n",
-            "class Assigner(AssignerBase):\n",
-            "    pass\n",
+            "from airalogy.assigner import AssignerResult, assigner\n",
+            "@assigner(assigned_fields=[\"total_volume\"], dependent_fields=[\"volume_a\", \"volume_b\"], mode=\"auto\")\n",
+            "def calculate_total_volume(dependent_fields: dict) -> AssignerResult:\n",
+            "    return AssignerResult(assigned_fields={\"total_volume\": 1})\n",
             "```",
         ]
         for chunk_content in chunks:
@@ -311,7 +310,8 @@ async def test_generate_stream_with_thinking_enabled():
         full_content = "".join(content_chunks)
         assert len(full_content) > 0
         # Should contain only the code content, not the thinking
-        assert "AssignerBase" in full_content
+        assert "AssignerResult" in full_content
+        assert "AssignerBase" not in full_content
         assert "<thinking>" not in full_content
 
 
@@ -327,7 +327,7 @@ async def test_generate_stream_timeout():
         await asyncio.sleep(10)  # Simulate slow response
         chunk = AsyncMock()
         chunk.choices = [AsyncMock()]
-        chunk.choices[0].delta.content = "class Assigner(AssignerBase): pass"
+        chunk.choices[0].delta.content = "from airalogy.assigner import AssignerResult, assigner"
         yield chunk
 
     mock_response.__aiter__ = slow_chunks
@@ -364,10 +364,11 @@ async def test_generate_stream_with_demo_data(demo_input_data):
     async def mock_chunks(self):
         chunks = [
             "```python\n",
-            "from airalogy.assigner import AssignerBase\n",
+            "from airalogy.assigner import AssignerResult, assigner\n",
             "# Generated from demo data\n",
-            "class Assigner(AssignerBase):\n",
-            "    pass\n",
+            "@assigner(assigned_fields=[\"total_volume\"], dependent_fields=[\"volume_a\", \"volume_b\"], mode=\"auto\")\n",
+            "def calculate_total_volume(dependent_fields: dict) -> AssignerResult:\n",
+            "    return AssignerResult(assigned_fields={\"total_volume\": 1})\n",
             "```",
         ]
         for chunk_content in chunks:
@@ -398,7 +399,8 @@ async def test_generate_stream_with_demo_data(demo_input_data):
 
         full_content = "".join(content_chunks)
         assert len(full_content) > 0
-        assert "AssignerBase" in full_content
+        assert "AssignerResult" in full_content
+        assert "AssignerBase" not in full_content
 
 
 @pytest.mark.asyncio
@@ -410,7 +412,7 @@ async def test_generate_stream_history_modification():
     mock_response = AsyncMock()
 
     async def mock_chunks(self):
-        chunks = ["```python\nclass Assigner: pass\n```"]
+        chunks = ["```python\nfrom airalogy.assigner import AssignerResult, assigner\n```"]
         for chunk_content in chunks:
             chunk = AsyncMock()
             chunk.choices = [AsyncMock()]
@@ -461,8 +463,10 @@ async def test_generate_stream_partial_code_blocks():
             "Here is the code:\n",
             "```py",
             "thon\n",  # Complete the start marker
-            "class Assigner:\n",
-            "    pass\n```",  # End marker in same chunk as last content
+            "from airalogy.assigner import AssignerResult, assigner\n",
+            "@assigner(assigned_fields=[\"total_volume\"], dependent_fields=[\"volume_a\", \"volume_b\"], mode=\"auto\")\n",
+            "def calculate_total_volume(dependent_fields: dict) -> AssignerResult:\n",
+            "    return AssignerResult(assigned_fields={\"total_volume\": 1})\n```",  # End marker in same chunk as last content
         ]
         for chunk_content in chunks:
             chunk = AsyncMock()
@@ -491,8 +495,8 @@ async def test_generate_stream_partial_code_blocks():
 
         full_content = "".join(content_chunks)
         # Should extract the code content properly
-        assert "class Assigner:" in full_content
-        assert "pass" in full_content
+        assert "def calculate_total_volume" in full_content
+        assert "AssignerResult" in full_content
         # Should not contain the markers
         assert "```python" not in full_content
         assert "```" not in full_content

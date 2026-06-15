@@ -14,6 +14,7 @@ from masterbrain.endpoints.protocol_debug.logic.prompts import (
     USER_MESSAGE_PROTOCOL_DEBUG_TEMPLATE,
 )
 from masterbrain.endpoints.protocol_debug.types import ProtocolDebugInput, ProtocolDebugOutput
+from masterbrain.utils.llm import qwen_chat_extra_body
 
 # JSON Schema to enforce structured output from LLM
 RESPONSE_JSON_SCHEMA = {
@@ -65,10 +66,10 @@ async def generate_debug_result(protocol_debug_input: ProtocolDebugInput) -> Pro
     ]
 
     client = select_client(protocol_debug_input.model.name)
-    response = await client.chat.completions.create(
-        messages=cast(List[ChatCompletionMessageParam], conversation_history),
-        model=protocol_debug_input.model.name,
-        response_format={
+    request_kwargs = {
+        "messages": cast(List[ChatCompletionMessageParam], conversation_history),
+        "model": protocol_debug_input.model.name,
+        "response_format": {
             "type": "json_schema",
             "json_schema": {
                 "name": "protocol_debug_result",
@@ -76,12 +77,17 @@ async def generate_debug_result(protocol_debug_input: ProtocolDebugInput) -> Pro
                 "schema": RESPONSE_JSON_SCHEMA,
             },
         },
-        timeout=1800,
-        extra_body={
-            "enable_thinking": protocol_debug_input.model.enable_thinking,
-            "enable_search": protocol_debug_input.model.enable_search,
-        },
+        "timeout": 1800,
+    }
+    extra_body = qwen_chat_extra_body(
+        protocol_debug_input.model.name,
+        enable_thinking=protocol_debug_input.model.enable_thinking,
+        enable_search=protocol_debug_input.model.enable_search,
     )
+    if extra_body is not None:
+        request_kwargs["extra_body"] = extra_body
+
+    response = await client.chat.completions.create(**request_kwargs)
 
     # Parse response
     raw = response.choices[0].message.content or ""

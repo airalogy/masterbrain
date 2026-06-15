@@ -34,6 +34,7 @@ PROXY_ENV_NAMES = (
     "all_proxy",
 )
 
+
 def required_api_key_env(model_name: str) -> str:
     """Return the env var name required for the selected model provider."""
 
@@ -66,6 +67,28 @@ def ensure_model_api_key(model_name: str) -> None:
     message = missing_api_key_message(model_name)
     if message:
         raise HTTPException(status_code=400, detail=message)
+
+
+def qwen_chat_extra_body(
+    model_name: str,
+    *,
+    enable_thinking: bool = False,
+    enable_search: bool = False,
+) -> dict[str, bool] | None:
+    """Return DashScope/Qwen-only chat options for models that support them."""
+
+    try:
+        provider = detect_model_provider(model_name)
+    except ValueError:
+        return None
+
+    if provider != "qwen":
+        return None
+
+    return {
+        "enable_thinking": enable_thinking,
+        "enable_search": enable_search,
+    }
 
 
 def _extract_provider_error_message(exc: Exception) -> str | None:

@@ -94,6 +94,8 @@ model.py:
 现在，请基于以下protocol.aimd和model.py内容生成可执行的assigner.py文件:
 Now, please generate an executable assigner.py file based on the following protocol.aimd and model.py content:
 
+Assigner syntax is module-level and function-based. Import only `AssignerResult` and `assigner` from `airalogy.assigner`, decorate normal functions with `@assigner(...)`, and use `dependent_fields: dict` as the function parameter. Do not use `AssignerBase`, `class Assigner`, `@staticmethod`, or `dependent_data`.
+
 protocol.aimd:
 {}
 

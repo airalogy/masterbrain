@@ -55,6 +55,9 @@ USER_MESSAGE_PROTOCOL_DEBUG_TEMPLATE = r"""
 - 当 `has_errors` 为 false 时，`fixed_segment` 必须为空字符串
 - 当 `has_errors` 为 true 时，`fixed_segment` 必须包含修正后的完整片段
 - `reason` 必须是字符串
+- 如果输入内容中包含形如 `0007: ...` 的行号前缀，行号只作为定位上下文，不属于 AIMD 内容；`fixed_segment` 不要保留行号前缀
+- 如果存在错误且输入包含行号，`reason` 必须引用相关行号，例如 `line 7` 或 `第7行`
+- 不要臆造未出现在完整文档中的变量、步骤或语法；无法确定时说明原因并给出最小修复
 """.strip()
 
 

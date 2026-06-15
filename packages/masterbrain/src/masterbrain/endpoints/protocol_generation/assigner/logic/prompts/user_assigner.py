@@ -47,6 +47,20 @@ def calculate_function_name(dependent_fields: dict) -> AssignerResult:
 4. `mode` 可选值: `"auto"` (自动触发), `"manual"` (手动触发), `"auto_first"` (仅首次自动), `"auto_readonly"`, `"manual_readonly"`
 5. 对于 Variable Table 中的子变量计算，使用 `"table_name.subvar_name"` 格式的字段名
 
+### 禁止生成的旧语法:
+- 不要导入或使用 `AssignerBase`
+- 不要生成 `class Assigner(...)`
+- 不要生成 `@staticmethod`
+- 不要使用参数名 `dependent_data`
+- 不要把 assigner 写成 AIMD 模板标签（例如 `{{assigner|...}}`）；独立的 assigner.py 只需要 Python 代码
+
+### 字段和健壮性要求:
+- `assigned_fields` 与 `dependent_fields` 中的字段必须能在 `VarModel` 或其表格子字段中找到
+- 普通变量使用字段名本身，例如 `"inhibition_rate"`；表格子变量使用 `"table_name.subvar_name"`
+- 不要计算或赋值未在 `model.py` 中声明的字段
+- 对除法和空值做基本防护，避免除以 0、`None` 或缺失键导致运行时错误
+- 如果没有任何可计算派生变量，只输出导入语句：`from airalogy.assigner import AssignerResult, assigner`
+
 ## 参考示例
 
 以下是一个完整的参考示例，展示了protocol.aimd、model.py与对应的assigner.py之间的关系：
@@ -176,11 +190,13 @@ def calculate_inhibition_rate(dependent_fields: dict) -> AssignerResult:
 3. 明确指定assigned_fields（被计算的字段）和dependent_fields（计算所依赖的字段）
 4. 确保所有数值计算准确，逻辑清晰
 5. 返回结果必须使用AssignerResult格式，包含assigned_fields字典
+6. 在输出前自检：最终代码中不得出现 `AssignerBase`、`class Assigner`、`@staticmethod` 或 `dependent_data`
 
 **工作流程:**
 1. 扫描protocol.aimd中的所有公式、计算指令和派生变量
 2. 对每个派生变量生成一个assigner函数
-3. 自检：确认没有遗漏任何可计算的变量
+3. 核对每个字段名是否存在于model.py
+4. 自检：确认没有遗漏任何可计算的变量，并确认代码不包含旧语法
 
 请仔细分析protocol.aimd和model.py中的变量关系及其计算逻辑，只生成assigner.py内容，不需要再创建或修改protocol.aimd和model.py文件。
 """.strip()

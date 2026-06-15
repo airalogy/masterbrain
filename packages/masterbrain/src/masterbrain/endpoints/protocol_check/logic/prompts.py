@@ -119,34 +119,36 @@ class VarModel(BaseModel):
 
 
 最终的assigner.py：
-from airalogy.assigner import (
-    AssignerBase,
-    AssignerResult,
-    assigner,
+from airalogy.assigner import AssignerResult, assigner
+
+
+@assigner(
+    assigned_fields=["inhibition_rate"],
+    dependent_fields=[
+        "control_group_od",
+        "treatment_group_od",
+    ],
+    mode="auto",
 )
-
-
-class Assigner(AssignerBase):
-    @assigner(
-        assigned_fields=["inhibition_rate"],
-        dependent_fields=[
-            "control_group_od",
-            "treatment_group_od",
-        ],
-        mode="auto",
+def calculate_inhibition_rate(dependent_fields: dict) -> AssignerResult:
+    control_group_od = dependent_fields["control_group_od"]
+    treatment_group_od = dependent_fields["treatment_group_od"]
+    inhibition_rate = (1 - (treatment_group_od / control_group_od)) * 100
+    return AssignerResult(
+        assigned_fields={
+            "inhibition_rate": round(inhibition_rate, 2),
+        },
     )
-    @staticmethod
-    def calculate_inhibition_rate(dependent_data: dict) -> AssignerResult:
-        control_group_od = dependent_data["control_group_od"]
-        treatment_group_od = dependent_data["treatment_group_od"]
-        inhibition_rate = (1 - (treatment_group_od / control_group_od)) * 100
-        return AssignerResult(
-            assigned_fields={
-                "inhibition_rate": round(inhibition_rate, 2),
-            },
-        )
 
 ============================
+
+## assigner.py 当前语法规则（强制）
+- 必须使用模块级函数式语法：`from airalogy.assigner import AssignerResult, assigner` + `@assigner(...)` + 普通函数
+- 禁止导入或使用 `AssignerBase`
+- 禁止生成 `class Assigner(...)`
+- 禁止生成 `@staticmethod`
+- 函数参数固定使用 `dependent_fields: dict`，不要使用旧参数名 `dependent_data`
+- `assigned_fields` 和 `dependent_fields` 中的字段名必须来自 `VarModel` 字段；Variable Table 子字段使用 `"table_name.subvar_name"` 格式
 """
 
 USER_MESSAGE_PROTOCOL_CHECK_TEMPLATE_HEAD = """
@@ -177,6 +179,7 @@ USER_MESSAGE_PROTOCOL_CHECK_TEMPLATE_TAIL = """
 - 如果提供了model.py，即使protocol.aimd也需要更新，也必须更新model.py
 - 如果提供了assigner.py，即使其他文件也需要更新，也必须更新assigner.py
 - 每次只能更新一个文件，其他文件必须保持不变
+- 当目标文件是assigner.py时，必须使用当前模块级函数式语法，禁止 `AssignerBase`、`class Assigner`、`@staticmethod` 和 `dependent_data`
 
 只需直接输出更新后的目标文件内容，不要包含任何额外的说明、分析或格式标记。
 """.strip()

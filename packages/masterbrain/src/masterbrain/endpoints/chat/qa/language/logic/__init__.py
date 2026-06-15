@@ -13,8 +13,9 @@ from openai.types.chat.chat_completion_system_message_param import (
     ChatCompletionSystemMessageParam,
 )
 
-from masterbrain.configs import DASHSCOPE_CLIENT, DEBUG
+from masterbrain.configs import DEBUG, select_client
 from masterbrain.endpoints.chat.qa.language.types import ChatInput
+from masterbrain.utils.llm import qwen_chat_extra_body
 from masterbrain.utils.print import print_with_border
 
 PROMPT_PATH = Path(__file__).parent / "prompt.md"
@@ -34,10 +35,7 @@ TOOLS = cast(
                     "properties": {
                         "airalogy_protocol_ids": {
                             "type": "array",
-                            "items": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                            },
+                            "items": {"type": "string"},
                         }
                     },
                     "required": ["airalogy_protocol_ids"],
@@ -56,10 +54,7 @@ TOOLS = cast(
                     "properties": {
                         "airalogy_record_ids": {
                             "type": "array",
-                            "items": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                            },
+                            "items": {"type": "string"},
                         }
                     },
                     "required": ["airalogy_record_ids"],
@@ -78,10 +73,7 @@ TOOLS = cast(
                     "properties": {
                         "airalogy_discussion_ids": {
                             "type": "array",
-                            "items": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                            },
+                            "items": {"type": "string"},
                         }
                     },
                     "required": ["airalogy_discussion_ids"],
@@ -116,17 +108,23 @@ async def generate_stream(
     ]
     messages.extend(chat_input.messages)
 
-    completion = await DASHSCOPE_CLIENT.chat.completions.create(
-        messages=messages,
-        model=chat_input.model.name,
-        tools=TOOLS,
-        tool_choice="none",
-        stream=True,
-        extra_body={
-            "enable_thinking": chat_input.model.enable_thinking,
-            "enable_search": chat_input.model.enable_search,
-        },
+    client = select_client(chat_input.model.name)
+    request_kwargs = {
+        "messages": messages,
+        "model": chat_input.model.name,
+        "tools": TOOLS,
+        "tool_choice": "none",
+        "stream": True,
+    }
+    extra_body = qwen_chat_extra_body(
+        chat_input.model.name,
+        enable_thinking=chat_input.model.enable_thinking,
+        enable_search=chat_input.model.enable_search,
     )
+    if extra_body is not None:
+        request_kwargs["extra_body"] = extra_body
+
+    completion = await client.chat.completions.create(**request_kwargs)
 
     content = ""
 
@@ -164,7 +162,7 @@ async def generate_stream(
                 yield c
 
             await asyncio.sleep(0)
-            
+
     # Close dangling </think> if stream ended during reasoning phase
     if think_opened and not think_closed:
         yield "\n</think>"

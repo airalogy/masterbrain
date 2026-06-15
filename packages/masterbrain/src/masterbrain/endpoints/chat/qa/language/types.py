@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 
 class SupportedModels(BaseModel):
-    name: Literal["qwen3.5-flash", "qwen3.5-plus", "qwen3-max"]
+    name: Literal["qwen3.5-flash", "qwen3.5-plus", "qwen3-max", "gpt-4.1"]
     enable_thinking: bool = False
     enable_search: bool = False
 
