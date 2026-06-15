@@ -6,11 +6,13 @@ __all__ = [
 ]
 
 import asyncio
+import ast
 import json
 import logging
 import os
 import socket
 import tempfile
+import tomllib
 from contextlib import asynccontextmanager, closing, suppress
 from dataclasses import dataclass
 from difflib import unified_diff
@@ -40,7 +42,12 @@ Rules:
 - If the user asks for code changes, edit the files directly in the workspace.
 - If the user asks a question, answer directly and avoid changing files unless necessary.
 - Keep changes minimal and focused on the user's request.
-- Prefer modifying existing files over creating new ones.
+- Edit only the current Protocol editor files: protocol.aimd, model.py, assigner.py, and protocol.toml.
+- Prefer modifying existing files over creating new ones. Do not create helper files.
+- Keep protocol.aimd valid AIMD. Variables should be declared with `{{var|name: Type}}` when a type is known.
+- Keep assigner logic compatible with Airalogy assigner syntax. In AIMD, assigner blocks are fenced with ```assigner ... ```. In standalone assigner.py, write the assigner code only, without Markdown fences.
+- Keep model.py valid Python and aligned with fields referenced by protocol.aimd and assigner.py.
+- Keep protocol.toml valid TOML.
 - Do not create or edit hidden files, runtime metadata, or config files unrelated to the request.
 - Do not touch files outside the workspace.
 - End with a short plain-language summary of what you changed or why no file changes were needed.
@@ -49,7 +56,9 @@ Rules:
 SUPPORTED_EDIT_SUFFIXES = {
     ".aimd": "aimd",
     ".py": "py",
+    ".toml": "toml",
 }
+ALLOWED_EDIT_PATHS = {"protocol.aimd", "model.py", "assigner.py", "protocol.toml"}
 IGNORED_TOP_LEVEL_NAMES = {"opencode.json", "AGENTS.md"}
 OPENCODE_LOG_TAIL_LIMIT = 40
 
@@ -160,7 +169,63 @@ def _is_hidden_or_internal(rel_path: str) -> bool:
 
 
 def _detect_supported_type(rel_path: str) -> str | None:
-    return SUPPORTED_EDIT_SUFFIXES.get(PurePosixPath(rel_path).suffix)
+    pure = PurePosixPath(rel_path)
+    if pure.as_posix() not in ALLOWED_EDIT_PATHS:
+        return None
+    return SUPPORTED_EDIT_SUFFIXES.get(pure.suffix)
+
+
+def _trim_warning(text: str, limit: int = 800) -> str:
+    normalized = " ".join(str(text).split())
+    if len(normalized) <= limit:
+        return normalized
+    return f"{normalized[: limit - 3]}..."
+
+
+def _validate_aimd_content(content: str) -> tuple[bool, object, str | None]:
+    try:
+        from airalogy.markdown import validate_aimd
+    except ModuleNotFoundError:
+        return (
+            True,
+            [],
+            "AIMD syntax validation skipped because the `airalogy` package is not installed.",
+        )
+
+    is_valid, errors = validate_aimd(content)
+    return is_valid, errors, None
+
+
+def validate_changed_file(change: CodeEditChangedFile) -> list[str]:
+    if change.status == "deleted":
+        return [f"{change.path} was deleted. Review carefully before applying."]
+
+    if change.type == "aimd":
+        is_valid, errors, skipped_warning = _validate_aimd_content(change.content)
+        if skipped_warning:
+            return [skipped_warning]
+        if not is_valid:
+            return [f"{change.path} has invalid AIMD syntax: {_trim_warning(str(errors))}"]
+        return []
+
+    if change.type == "py":
+        try:
+            ast.parse(change.content)
+        except SyntaxError as exc:
+            location = f"line {exc.lineno}"
+            if exc.offset:
+                location = f"{location}, column {exc.offset}"
+            return [f"{change.path} has invalid Python syntax at {location}: {exc.msg}"]
+        return []
+
+    if change.type == "toml":
+        try:
+            tomllib.loads(change.content)
+        except tomllib.TOMLDecodeError as exc:
+            return [f"{change.path} has invalid TOML syntax: {_trim_warning(str(exc))}"]
+        return []
+
+    return []
 
 
 def _safe_workspace_path(root: Path, rel_path: str) -> Path:
@@ -351,7 +416,7 @@ def compute_workspace_changes(
 
         if supported_type is None:
             warnings.append(
-                f"Ignored unsupported file change outside the current UI scope: {rel_path}"
+                f"Ignored unsupported file change outside the current Protocol editor scope: {rel_path}"
             )
             continue
 
@@ -635,6 +700,8 @@ async def generate_code_edit_result(
 
     changed_files, change_warnings = compute_workspace_changes(before_state, after_state)
     warnings.extend(change_warnings)
+    for change in changed_files:
+        warnings.extend(validate_changed_file(change))
     if changed_files:
         changed_labels = ", ".join(
             f"{change.path} ({change.status})" for change in changed_files

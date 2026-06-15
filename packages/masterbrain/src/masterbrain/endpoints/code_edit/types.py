@@ -29,7 +29,7 @@ class WorkspaceFile(BaseModel):
 
     path: str = Field(description="Relative workspace path, for example src/model.py")
     content: str = Field(description="Current file content")
-    type: Literal["aimd", "py", "other"] = Field(
+    type: Literal["aimd", "py", "toml", "other"] = Field(
         default="other",
         description="Frontend file type hint",
     )
@@ -69,7 +69,7 @@ class CodeEditChangedFile(BaseModel):
 
     path: str
     name: str
-    type: Literal["aimd", "py"]
+    type: Literal["aimd", "py", "toml"]
     status: Literal["created", "modified", "deleted"]
     content: str = Field(
         default="",

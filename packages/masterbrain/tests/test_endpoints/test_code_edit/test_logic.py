@@ -95,14 +95,14 @@ def test_compute_workspace_changes_reports_create_modify_delete():
 
     changed_files, warnings = compute_workspace_changes(before, after)
 
-    assert warnings == []
+    assert warnings == [
+        "Ignored unsupported file change outside the current Protocol editor scope: helper.py"
+    ]
     assert [change.path for change in changed_files] == [
-        "helper.py",
         "model.py",
         "protocol.aimd",
     ]
     assert [change.status for change in changed_files] == [
-        "created",
         "deleted",
         "modified",
     ]
@@ -127,11 +127,11 @@ async def test_generate_code_edit_result_uses_runtime_and_collects_changes():
     assert result.runtime == "opencode"
     assert "Updated the protocol step" in result.message
     assert [change.path for change in result.changed_files] == [
-        "helper.py",
         "protocol.aimd",
     ]
     assert result.edit_status == "changed"
     assert any("enable_thinking" in warning for warning in result.warnings)
+    assert any("helper.py" in warning for warning in result.warnings)
     assert any("Created OpenCode session" in line for line in result.execution_log)
 
 
