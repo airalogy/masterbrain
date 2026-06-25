@@ -33,7 +33,7 @@ class TestGenerateDebugResult:
         mock_response.choices = [AsyncMock()]
         mock_response.choices[
             0
-        ].message.content = '{"fixed_segment": "Fixed protocol", "reason_and_basis_for_fix": "Test reason"}'
+        ].message.content = '{"has_errors": true, "fixed_segment": "Fixed protocol", "reason": "Test reason"}'
 
         # Mock client
         mock_client = AsyncMock()
@@ -43,10 +43,11 @@ class TestGenerateDebugResult:
             "masterbrain.endpoints.protocol_debug.logic.select_client",
             return_value=mock_client,
         ):
-            fixed_protocol, response_reason = await generate_debug_result(input_data)
+            result = await generate_debug_result(input_data)
 
-            assert fixed_protocol == "Fixed protocol"
-            assert response_reason == "Test reason"
+            assert result.has_errors is True
+            assert result.fixed_protocol == "Fixed protocol"
+            assert result.response == "Test reason"
 
     @pytest.mark.asyncio
     async def test_generate_debug_result_empty_suspect(self):
@@ -57,10 +58,11 @@ class TestGenerateDebugResult:
             model=SupportedModels(name="qwen3.5-flash"),
         )
 
-        fixed_protocol, response_reason = await generate_debug_result(input_data)
+        result = await generate_debug_result(input_data)
 
-        assert fixed_protocol is None
-        assert response_reason == "The part to be fixed is empty."
+        assert result.has_errors is False
+        assert result.fixed_protocol == ""
+        assert result.response == "The part to be checked is empty."
 
     @pytest.mark.asyncio
     async def test_generate_debug_result_invalid_json_response(self):
@@ -84,8 +86,12 @@ class TestGenerateDebugResult:
             "masterbrain.endpoints.protocol_debug.logic.select_client",
             return_value=mock_client,
         ):
-            with pytest.raises(Exception):  # Should raise JSON decode error
-                await generate_debug_result(input_data)
+            # Invalid JSON is handled gracefully (no exception raised).
+            result = await generate_debug_result(input_data)
+
+            assert result.has_errors is False
+            assert result.fixed_protocol == ""
+            assert result.response.startswith("Failed to parse LLM response")
 
     @pytest.mark.asyncio
     async def test_generate_debug_result_missing_fields(self):
@@ -109,10 +115,11 @@ class TestGenerateDebugResult:
             "masterbrain.endpoints.protocol_debug.logic.select_client",
             return_value=mock_client,
         ):
-            fixed_protocol, response_reason = await generate_debug_result(input_data)
+            result = await generate_debug_result(input_data)
 
-            assert fixed_protocol == ""
-            assert response_reason == ""
+            assert result.has_errors is False
+            assert result.fixed_protocol == ""
+            assert result.response == ""
 
     @pytest.mark.asyncio
     async def test_generate_debug_result_with_thinking_and_search(self):

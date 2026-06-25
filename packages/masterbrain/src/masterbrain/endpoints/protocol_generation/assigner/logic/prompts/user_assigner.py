@@ -117,7 +117,7 @@ from datetime import date
 
 from pydantic import BaseModel, Field
 
-from airalogy.built_in_types import AiralogyMarkdown, CurrentTime, UserName
+from airalogy.types import AiralogyMarkdown, CurrentTime, UserName
 
 
 class OdReading(BaseModel):

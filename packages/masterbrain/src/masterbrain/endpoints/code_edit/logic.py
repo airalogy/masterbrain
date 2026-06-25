@@ -50,6 +50,7 @@ Rules:
 - Prefer modifying existing files over creating new ones. Do not create helper files.
 - Keep protocol.aimd valid AIMD. Variables should be declared with `{{var|name: Type}}` when a type is known.
 - Keep assigner logic compatible with Airalogy assigner syntax. In AIMD, assigner blocks are fenced with ```assigner ... ```. In standalone assigner.py, write the assigner code only, without Markdown fences.
+- Use the current module-level, function-based assigner syntax: `from airalogy.assigner import AssignerResult, assigner`, decorate plain functions with `@assigner(assigned_fields=[...], dependent_fields=[...], mode="auto")`, take a single `dependent_fields: dict` argument, and return `AssignerResult(assigned_fields={...})`. Do not use the deprecated `AssignerBase`, `class Assigner`, `@staticmethod`, or a `dependent_data` parameter. For Variable Table fields, reference them as `"table_name.subvar_name"`.
 - Keep model.py valid Python and aligned with fields referenced by protocol.aimd and assigner.py.
 - Keep protocol.toml valid TOML.
 - Do not create or edit hidden files, runtime metadata, or config files unrelated to the request.

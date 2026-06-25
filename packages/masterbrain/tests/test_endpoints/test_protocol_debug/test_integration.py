@@ -93,10 +93,15 @@ class TestProtocolDebugIntegration:
             assert response_data["fixed_protocol"] == "Fixed protocol"
             call_kwargs = mock_client.chat.completions.create.call_args.kwargs
             assert call_kwargs["model"] == model_config["name"]
-            assert call_kwargs["extra_body"] == {
-                "enable_thinking": model_config["enable_thinking"],
-                "enable_search": model_config["enable_search"],
-            }
+            # extra_body carries Qwen/DashScope-only options; non-qwen models
+            # (e.g. gpt-4o-mini) must not receive an extra_body at all.
+            if model_config["name"].startswith("qwen"):
+                assert call_kwargs["extra_body"] == {
+                    "enable_thinking": model_config["enable_thinking"],
+                    "enable_search": model_config["enable_search"],
+                }
+            else:
+                assert "extra_body" not in call_kwargs
 
     def test_protocol_debug_error_handling(self, client: TestClient):
         """Test error handling in protocol debug"""

@@ -8,9 +8,9 @@ USER_MESSAGE_MODEL_PY_HEAD_TEMPLATE = """
 - 根据AIMD中的内联类型注解创建对应的Pydantic模型
 - 将AIMD类型映射到Python/Pydantic类型:
   - `str`, `int`, `float`, `bool` → 直接使用Python类型
-  - `UserName`, `CurrentTime`, `AiralogyMarkdown` → 从 `airalogy.built_in_types` 导入
-  - `date` → 从 `datetime` 导入或使用 `airalogy.built_in_types`
-  - `file` → 使用 `airalogy.built_in_types`
+  - `UserName`, `CurrentTime`, `AiralogyMarkdown` → 从 `airalogy.types` 导入
+  - `date` → 从 `datetime` 导入
+  - `file` → 使用 `airalogy.types`
 - 对于表格变量(带subvars的变量),创建对应的子模型类
 - 使用 `Field()` 传递 title, description 等元数据
 - 生成完整的model.py文件，不包含任何额外的说明或注释
@@ -74,7 +74,7 @@ from datetime import date
 
 from pydantic import BaseModel, Field
 
-from airalogy.built_in_types import AiralogyMarkdown, CurrentTime, UserName
+from airalogy.types import AiralogyMarkdown, CurrentTime, UserName
 
 
 class OdReading(BaseModel):

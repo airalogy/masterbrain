@@ -41,7 +41,7 @@ USER_MESSAGE_PROTOCOL_TAIL_TEMPLATE = """
 from airalogy.assigner import AssignerResult, assigner
 @assigner(assigned_fields=["ratio"], dependent_fields=["length", "thickness"], mode="auto")
 def calc_ratio(dep: dict) -> AssignerResult:
-    return AssignerResult(assigned_fields={{"ratio": dep["length"] / dep["thickness"]}})
+    return AssignerResult(assigned_fields={"ratio": dep["length"] / dep["thickness"]})
 ```
 不要只用文字描述公式而省略assigner代码块。
 """

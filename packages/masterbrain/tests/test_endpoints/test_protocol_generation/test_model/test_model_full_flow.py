@@ -61,7 +61,7 @@ async def test_full_model_flow(model_name: str):
     async def mock_model_chunks(self):
         model_chunks = [
             "from pydantic import BaseModel, Field\n\n",
-            "from airalogy.built_in_types import CurrentTime, UserName\n\n\n",
+            "from airalogy.types import CurrentTime, UserName\n\n\n",
             "class VarModel(BaseModel):\n",
             "    experimenter: UserName\n",
             "    experiment_time: CurrentTime\n",
@@ -200,7 +200,7 @@ async def test_full_flow_with_thinking_enabled():
             "我需要分析协议中的变量和参数。\n",
             "</thinking>\n\n",
             "from pydantic import BaseModel, Field\n\n",
-            "from airalogy.built_in_types import CurrentTime, UserName\n\n",
+            "from airalogy.types import CurrentTime, UserName\n\n",
             "class VarModel(BaseModel):\n",
             "    experimenter: UserName\n",
             "    experiment_time: CurrentTime\n",
@@ -295,7 +295,7 @@ async def test_full_flow_long_protocol():
     async def mock_long_response(self):
         response_chunks = [
             "from pydantic import BaseModel, Field\n\n",
-            "from airalogy.built_in_types import CurrentTime, UserName\n\n",
+            "from airalogy.types import CurrentTime, UserName\n\n",
             "class VarModel(BaseModel):\n",
             "    experimenter: UserName\n",
             "    experiment_time: CurrentTime\n",
@@ -360,7 +360,7 @@ Medium Volume: {{var|medium_volume}} mL
     async def mock_english_chunks(self):
         english_chunks = [
             "from pydantic import BaseModel, Field\n\n",
-            "from airalogy.built_in_types import CurrentTime, UserName\n\n",
+            "from airalogy.types import CurrentTime, UserName\n\n",
             "class VarModel(BaseModel):\n",
             "    experimenter: UserName\n",
             "    experiment_time: CurrentTime\n",
@@ -529,7 +529,7 @@ pH值：{{var|ph_value}}
     async def mock_complex_chunks(self):
         complex_chunks = [
             "from pydantic import BaseModel, Field\n\n",
-            "from airalogy.built_in_types import CurrentTime, UserName\n\n",
+            "from airalogy.types import CurrentTime, UserName\n\n",
             "class VarModel(BaseModel):\n",
             "    experimenter: UserName\n",
             "    experiment_time: CurrentTime\n",

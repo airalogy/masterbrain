@@ -2,8 +2,6 @@ import asyncio
 import re
 import time
 
-from langchain.prompts import PromptTemplate
-
 from masterbrain.configs import select_client
 from masterbrain.endpoints.protocol_generation.aimd.logic.prompts import (
     SYSTEM_MESSAGE_PROMPT,
@@ -16,11 +14,15 @@ from masterbrain.endpoints.protocol_generation.aimd.types import AimdProtocolMes
 async def generate_stream(protocol_msg: AimdProtocolMessage, history: list):
     start_time = time.time()
 
-    # Prepare user prompt
-    prompt = USER_MESSAGE_PROTOCOL_AIMD_HEAD_TEMPLATE + PromptTemplate(
-        input_variables=["USER_MESSAGE_REF_PROTOCOL"],
-        template=USER_MESSAGE_PROTOCOL_AIMD_TAIL_TEMPLATE,
-    ).format(USER_MESSAGE_REF_PROTOCOL=protocol_msg.instruction)
+    # Prepare user prompt.
+    # The TAIL template embeds literal AIMD examples written with double braces
+    # (e.g. {{var|...}}). Rendering it through an f-string / langchain
+    # PromptTemplate would collapse `{{ }}` into single braces `{ }` and teach
+    # the model invalid AIMD syntax, so we substitute the placeholder with a
+    # plain string replace that leaves all other braces untouched.
+    prompt = USER_MESSAGE_PROTOCOL_AIMD_HEAD_TEMPLATE + USER_MESSAGE_PROTOCOL_AIMD_TAIL_TEMPLATE.replace(
+        "{USER_MESSAGE_REF_PROTOCOL}", protocol_msg.instruction
+    )
 
     history.append({"role": "user", "content": prompt})
 

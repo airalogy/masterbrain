@@ -32,7 +32,7 @@ async def test_generate_stream_success(model_name: str):
     async def mock_chunks(self):
         chunks = [
             "from pydantic import BaseModel, Field\n\n",
-            "from airalogy.built_in_types import CurrentTime, UserName\n\n",
+            "from airalogy.types import CurrentTime, UserName\n\n",
             "class VarModel(BaseModel):\n",
             "    experimenter: UserName\n",
             "    experiment_time: CurrentTime\n",
@@ -280,7 +280,7 @@ async def test_generate_stream_with_demo_data(demo_input_data):
     async def mock_chunks(self):
         chunks = [
             "from pydantic import BaseModel, Field\n\n",
-            "from airalogy.built_in_types import CurrentTime, UserName\n\n",
+            "from airalogy.types import CurrentTime, UserName\n\n",
             "class VarModel(BaseModel):\n",
             "    experimenter: UserName\n",
             "    experiment_time: CurrentTime\n",
@@ -369,7 +369,7 @@ async def test_generate_stream_complex_protocol():
     async def mock_chunks(self):
         chunks = [
             "from pydantic import BaseModel, Field\n\n",
-            "from airalogy.built_in_types import CurrentTime, UserName\n\n",
+            "from airalogy.types import CurrentTime, UserName\n\n",
             "class VarModel(BaseModel):\n",
             "    experimenter: UserName\n",
             "    experiment_time: CurrentTime\n",

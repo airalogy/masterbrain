@@ -117,7 +117,7 @@ def expected_model_output():
     """Expected model.py output structure for validation."""
     return """from pydantic import BaseModel, Field
 
-from airalogy.built_in_types import CurrentTime, UserName
+from airalogy.types import CurrentTime, UserName
 
 
 class VarModel(BaseModel):

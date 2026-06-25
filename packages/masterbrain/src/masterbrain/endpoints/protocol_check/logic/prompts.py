@@ -101,7 +101,7 @@ Formula: Inhibition Rate = [1 - (Treatment Group OD ÷ Control Group OD)] × 100
 model.py：
 from pydantic import BaseModel, Field
 
-from airalogy.built_in_types import CurrentTime, UserName
+from airalogy.types import CurrentTime, UserName
 
 
 class VarModel(BaseModel):
