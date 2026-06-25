@@ -1,5 +1,10 @@
 # Airalogy Masterbrain
 
+[![PyPI version](https://img.shields.io/pypi/v/masterbrain.svg)](https://pypi.org/project/masterbrain/)
+[![Python versions](https://img.shields.io/pypi/pyversions/masterbrain.svg)](https://pypi.org/project/masterbrain/)
+[![License](https://img.shields.io/pypi/l/masterbrain.svg)](https://pypi.org/project/masterbrain/)
+[![Release](https://github.com/airalogy/masterbrain/actions/workflows/release.yml/badge.svg)](https://github.com/airalogy/masterbrain/actions/workflows/release.yml)
+
 简体中文：[README.zh-CN.md](README.zh-CN.md)
 
 Masterbrain now uses a lightweight monorepo layout:
