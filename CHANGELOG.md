@@ -6,6 +6,16 @@
 
 - No changes yet.
 
+## v0.9.1
+
+### Added
+
+- Added `GET /api/health/providers` to check configured provider credentials, connectivity, and default-model access without generating model output.
+
+### Fixed
+
+- Preserved AIMD template braces in protocol-generation prompts instead of collapsing doubled braces before model invocation.
+
 ## v0.9.0
 
 ### Added
