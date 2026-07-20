@@ -91,6 +91,14 @@ npm run studio:dev
 
 Vite 开发服务器默认运行在 `http://localhost:5173`，并将 `/api/*` 代理到 `http://127.0.0.1:8080`。
 
+可以通过以下接口检查模型 provider 的凭据、连通性和默认模型权限；该检查不会生成模型内容：
+
+```shell
+curl http://127.0.0.1:8080/api/health/providers
+```
+
+所有已配置 provider 均正常时接口返回 `200`；未配置任何 provider，或任一已配置 provider 不可用时返回 `503`。
+
 ## 打包
 
 PyPI 发布由 GitHub Actions 在推送 `v*` tag 时自动执行。完整流程见 [`RELEASING.zh-CN.md`](./RELEASING.zh-CN.md)。

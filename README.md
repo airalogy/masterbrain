@@ -93,6 +93,14 @@ npm run studio:dev
 
 The Vite dev server runs at `http://localhost:5173` and proxies `/api/*` to `http://127.0.0.1:8080`.
 
+Check configured model-provider credentials, connectivity, and default-model access without generating model output:
+
+```shell
+curl http://127.0.0.1:8080/api/health/providers
+```
+
+The endpoint returns `200` when every configured provider is healthy. It returns `503` when no provider is configured or a configured provider cannot be used.
+
 ## Packaging
 
 PyPI publishing is handled by GitHub Actions on `v*` tag pushes. See [`RELEASING.md`](./RELEASING.md) for the release flow.
