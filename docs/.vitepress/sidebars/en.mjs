@@ -6,6 +6,7 @@ export default [
       { text: 'Quick Start', link: '/en/quickstart' },
       { text: 'Workspace and Editing', link: '/en/workspace-and-editing' },
       { text: 'Architecture', link: '/en/ai-architecture' },
+      { text: 'Model Usage and Billing', link: '/en/usage-and-billing' },
       { text: 'Code Structure', link: '/en/code-structure' }
     ]
   },

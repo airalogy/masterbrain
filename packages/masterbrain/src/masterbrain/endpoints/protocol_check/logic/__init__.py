@@ -75,6 +75,10 @@ async def generate_stream(protocol_check_input: ProtocolCheckInput):
     start_marker = start_markers[1] if target_file == "protocol" else start_markers[0]
 
     async for chunk in response:
+        # Keep consuming after the output fence so LiteLLM can deliver its final
+        # usage chunk, while withholding any trailing model text from the client.
+        if content_ended:
+            continue
         if chunk.choices and chunk.choices[0].delta.content:
             content = chunk.choices[0].delta.content
             pending_buffer += content
@@ -111,9 +115,10 @@ async def generate_stream(protocol_check_input: ProtocolCheckInput):
                 buffer += filtered_content
                 yield filtered_content
 
-                # If we've reached the end marker, stop processing further content
+                # Stop emitting content, but consume the upstream stream to its
+                # final usage chunk for accurate metering.
                 if content_ended:
-                    break
+                    continue
 
             await asyncio.sleep(0)
 

@@ -4,7 +4,11 @@
 
 ## Unreleased
 
-- No changes yet.
+### Added
+
+- Added provider-neutral `ModelUsage`, `ModelUsageEvent`, `UsageContext`, currency-aware aggregation, and `UsageSink` APIs for embedding applications to persist model usage and implement model-specific billing.
+- Added usage capture for LiteLLM chat and transcription calls, streaming completion usage, LangChain paper generation, direct DashScope transcription, and OpenCode code-edit calls.
+- Added FastAPI operation correlation through `X-Masterbrain-Operation-Id` and documented the integration boundary between Masterbrain metering and Platform pricing.
 
 ## v0.9.1
 

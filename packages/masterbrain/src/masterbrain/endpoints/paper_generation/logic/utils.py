@@ -6,6 +6,9 @@ import os
 from typing import TYPE_CHECKING
 from langchain.chat_models import init_chat_model
 
+from masterbrain.providers.langchain_usage import MasterbrainLangChainUsageCallback
+from masterbrain.providers.registry import detect_model_provider
+
 if TYPE_CHECKING:
     from masterbrain.endpoints.paper_generation.logic.config import Configuration
 
@@ -39,12 +42,30 @@ def create_chat_model(config: "Configuration"):
     model_kwargs = (config.writer_model_kwargs or {}).copy()
     api_key = model_kwargs.pop("api_key", None)
     base_url = model_kwargs.pop("base_url", None)
+    configured_callbacks = model_kwargs.pop("callbacks", None)
+    if configured_callbacks is None:
+        callbacks = []
+    elif isinstance(configured_callbacks, (list, tuple)):
+        callbacks = list(configured_callbacks)
+    else:
+        callbacks = [configured_callbacks]
+    try:
+        usage_provider = detect_model_provider(config.writer_model)
+    except ValueError:
+        usage_provider = config.writer_provider
+    callbacks.append(
+        MasterbrainLangChainUsageCallback(
+            provider=usage_provider,
+            requested_model=config.writer_model,
+        )
+    )
     
     # 构建 init_chat_model 的参数
     init_params = {
         "model": config.writer_model,
         "model_provider": config.writer_provider,
-        "model_kwargs": model_kwargs
+        "model_kwargs": model_kwargs,
+        "callbacks": callbacks,
     }
     if api_key:
         init_params["api_key"] = api_key

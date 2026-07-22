@@ -15,6 +15,7 @@ import dashscope
 
 from masterbrain.configs import select_client, AvailableQwenModel, DASHSCOPE_API_KEY
 from masterbrain.types.error import LlmError
+from masterbrain.usage import UsageCallTracker
 
 from .types import STTRequestBody, STTResponseBody
 
@@ -220,11 +221,31 @@ async def transcribe_audio_qwen(
             )
             return response
 
-        # Run synchronous dashscope call in thread pool
-        response = await asyncio.to_thread(call_dashscope_api)
+        # Run synchronous dashscope call in thread pool. DashScope does not pass
+        # through the LiteLLM adapter, so it is metered at this explicit boundary.
+        tracker = UsageCallTracker(
+            provider="qwen",
+            requested_model=model_name,
+            call_type="audio.transcription",
+            metadata={"runtime": "dashscope"},
+        )
+        try:
+            response = await asyncio.to_thread(call_dashscope_api)
+        except BaseException as exc:
+            await tracker.fail(exc)
+            raise
 
         # Extract transcribed text from response
         if response.status_code == 200:
+            await tracker.succeed(
+                resolved_model=getattr(response, "model", None) or model_name,
+                raw_usage=getattr(response, "usage", None),
+                provider_cost=getattr(response, "cost", None),
+                provider_cost_currency=getattr(response, "cost_currency", None),
+                provider_cost_source="provider",
+                source="provider",
+                provider_request_id=getattr(response, "request_id", None),
+            )
             # Parse response to get transcribed text
             output_content = response.output.choices[0].message.content
             if isinstance(output_content, list) and len(output_content) > 0:
@@ -236,6 +257,11 @@ async def transcribe_audio_qwen(
                     detail="Unexpected response format from dashscope API"
                 )
         else:
+            await tracker.fail(
+                RuntimeError(
+                    f"DashScope API error: {response.code} - {response.message}"
+                )
+            )
             raise HTTPException(
                 status_code=500,
                 detail=f"Dashscope API error: {response.code} - {response.message}"

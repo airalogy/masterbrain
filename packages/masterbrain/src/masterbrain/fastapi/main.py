@@ -39,6 +39,7 @@ from masterbrain.endpoints import (
 from masterbrain.endpoints.aira.router import aira_router
 from masterbrain.endpoints.code_edit.logic import shutdown_code_edit_runtime_manager
 from masterbrain.fastapi.provider_health import router as provider_health_router
+from masterbrain.fastapi.usage import install_usage_context_middleware
 from masterbrain.utils.llm import llm_http_exception
 
 
@@ -50,11 +51,14 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+install_usage_context_middleware(app)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Masterbrain-Operation-Id"],
 )
 
 ENDPOINTS_PREFIX = "/api/endpoints"

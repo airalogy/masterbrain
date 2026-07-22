@@ -35,6 +35,7 @@ from masterbrain.endpoints.code_edit.types import (
     CodeEditInput,
     CodeEditOutput,
 )
+from masterbrain.usage import UsageCallTracker, to_usage_mapping
 from masterbrain.utils.llm import ensure_model_api_key
 from masterbrain.utils.opencode import missing_opencode_message, resolve_opencode_binary
 
@@ -683,19 +684,41 @@ async def _run_opencode_message(
         chat_response.raise_for_status()
         assistant_message = chat_response.json()
         if assistant_message.get("error"):
+            await _record_opencode_usage(
+                [assistant_message],
+                requested_provider=provider_id,
+                requested_model=model_id,
+                session_id=session_id,
+            )
             raise RuntimeError(f"OpenCode returned an error: {assistant_message['error']}")
         _record_execution(
             execution_log,
             f"Submitted edit request to {provider_id}/{model_id}.",
         )
 
-        messages_response = await client.get(f"/session/{session_id}/message")
-        messages_response.raise_for_status()
+        try:
+            messages_response = await client.get(f"/session/{session_id}/message")
+            messages_response.raise_for_status()
+        except BaseException:
+            await _record_opencode_usage(
+                [assistant_message],
+                requested_provider=provider_id,
+                requested_model=model_id,
+                session_id=session_id,
+            )
+            raise
         messages = messages_response.json()
         _record_execution(
             execution_log,
             f"Fetched {len(messages)} message(s) from OpenCode session history.",
         )
+
+    await _record_opencode_usage(
+        messages,
+        requested_provider=provider_id,
+        requested_model=model_id,
+        session_id=session_id,
+    )
 
     summary = "OpenCode completed without returning a text summary."
     for message in reversed(messages):
@@ -716,6 +739,55 @@ async def _run_opencode_message(
         f"Assistant summary: {_trim_for_log(summary)}",
     )
     return OpenCodeRunResult(message=summary, execution_log=execution_log)
+
+
+def _usage_provider(provider_id: str) -> str:
+    return "qwen" if provider_id == "dashscope" else provider_id
+
+
+async def _record_opencode_usage(
+    messages: list[dict],
+    *,
+    requested_provider: str,
+    requested_model: str,
+    session_id: str,
+) -> None:
+    """Bridge OpenCode's per-assistant-call counters into the shared sink."""
+
+    for message in messages:
+        info = to_usage_mapping(message.get("info") or message)
+        if info.get("role") != "assistant":
+            continue
+        tokens = to_usage_mapping(info.get("tokens"))
+        cost = info.get("cost")
+        raw_error = info.get("error") or message.get("error")
+        if not tokens and cost is None and raw_error is None:
+            continue
+
+        provider_id = str(info.get("providerID") or requested_provider)
+        message_id = str(info.get("id") or "") or None
+        tracker = UsageCallTracker(
+            provider=_usage_provider(provider_id),
+            requested_model=requested_model,
+            call_type="code.edit",
+            call_id=message_id,
+            metadata={"runtime": "opencode", "session_id": session_id},
+        )
+        error = to_usage_mapping(raw_error)
+        await tracker.finish(
+            status="failed" if raw_error is not None else "succeeded",
+            resolved_model=str(info.get("modelID") or requested_model),
+            raw_usage=tokens,
+            provider_cost=cost,
+            provider_cost_source="opencode",
+            source="provider",
+            provider_request_id=message_id,
+            error_type=(
+                str(error.get("name") or error.get("type") or "OpenCodeError")
+                if raw_error is not None
+                else None
+            ),
+        )
 
 
 def _opencode_config_key(config: dict) -> str:

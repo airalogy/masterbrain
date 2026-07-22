@@ -1,5 +1,4 @@
 import asyncio
-from typing import get_args
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -101,6 +100,7 @@ async def test_generate_stream_code_block_filtering():
 
     mock_client = AsyncMock()
     mock_response = AsyncMock()
+    consumed_chunks = []
 
     async def mock_chunks_with_markers(self):
         chunks = [
@@ -115,6 +115,7 @@ async def test_generate_stream_code_block_filtering():
             "This is suffix text that should be filtered out",
         ]
         for chunk_content in chunks:
+            consumed_chunks.append(chunk_content)
             chunk = AsyncMock()
             chunk.choices = [AsyncMock()]
             chunk.choices[0].delta.content = chunk_content
@@ -148,6 +149,7 @@ async def test_generate_stream_code_block_filtering():
         assert "```" not in full_content
         assert "prefix text" not in full_content
         assert "suffix text" not in full_content
+        assert consumed_chunks[-1] == "This is suffix text that should be filtered out"
 
 
 @pytest.mark.asyncio

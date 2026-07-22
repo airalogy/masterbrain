@@ -4,7 +4,11 @@
 
 ## Unreleased
 
-- 暂无。
+### 新增功能
+
+- 新增 provider-neutral 的 `ModelUsage`、`ModelUsageEvent`、`UsageContext`、按币种聚合与 `UsageSink` API，宿主应用可以持久化模型用量并实现按模型计费。
+- 新增 LiteLLM 对话与转录、流式 completion、LangChain 论文生成、DashScope 直连语音转录和 OpenCode 代码编辑的统一用量捕获。
+- 新增基于 `X-Masterbrain-Operation-Id` 的 FastAPI 操作关联，并记录 Masterbrain 计量与 Platform 定价之间的集成边界。
 
 ## v0.9.1
 

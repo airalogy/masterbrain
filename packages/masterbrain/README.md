@@ -6,6 +6,7 @@ The package depends on the sibling `airalogy` package in source checkouts and us
 
 For platform coverage and packaging limits, see [`../../PLATFORM_SUPPORT.md`](../../PLATFORM_SUPPORT.md).
 For PyPI release automation, see [`../../RELEASING.md`](../../RELEASING.md).
+For usage metering and Platform billing integration, see [`../../docs/en/usage-and-billing.md`](../../docs/en/usage-and-billing.md).
 
 ## Setup
 

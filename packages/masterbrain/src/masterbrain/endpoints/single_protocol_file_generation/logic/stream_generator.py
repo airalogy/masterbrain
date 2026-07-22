@@ -4,7 +4,6 @@ import time
 
 from masterbrain.configs import select_client
 from masterbrain.endpoints.single_protocol_file_generation.logic.prompts import (
-    SYSTEM_MESSAGE_PROMPT,
     USER_MESSAGE_PROTOCOL_HEAD_TEMPLATE,
     USER_MESSAGE_PROTOCOL_TAIL_TEMPLATE,
 )
@@ -51,6 +50,10 @@ async def generate_stream(protocol_msg: ProtocolMessage, history: list):
     fence_depth = 0
 
     async for chunk in response:
+        # Keep consuming after the output fence so LiteLLM can deliver its final
+        # usage chunk, while withholding any trailing model text from the client.
+        if content_ended:
+            continue
         if chunk.choices and chunk.choices[0].delta.content:
             content = chunk.choices[0].delta.content
             pending_buffer += content
@@ -102,9 +105,10 @@ async def generate_stream(protocol_msg: ProtocolMessage, history: list):
                 buffer += filtered_content
                 yield filtered_content
 
-                # If we've reached the end marker, stop processing further content
+                # Stop emitting content, but consume the upstream stream to its
+                # final usage chunk for accurate metering.
                 if content_ended:
-                    break
+                    continue
 
             await asyncio.sleep(0)
 

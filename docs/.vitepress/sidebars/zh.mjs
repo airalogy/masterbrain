@@ -6,6 +6,7 @@ export default [
       { text: '快速开始', link: '/zh/quickstart' },
       { text: '工作区与代码编辑', link: '/zh/workspace-and-editing' },
       { text: '系统架构', link: '/zh/ai-architecture' },
+      { text: '模型用量与计费', link: '/zh/usage-and-billing' },
       { text: '代码结构', link: '/zh/code-structure' }
     ]
   },

@@ -6,6 +6,7 @@ import pytest
 
 from masterbrain.endpoints.code_edit.logic import (
     OpenCodeRunResult,
+    _record_opencode_usage,
     _workspace_namespace,
     _sync_workspace,
     build_code_edit_prompt,
@@ -19,6 +20,7 @@ from masterbrain.endpoints.code_edit.types import (
     SupportedModels,
     WorkspaceFile,
 )
+from masterbrain.usage import InMemoryUsageSink, bind_usage_sinks
 
 
 class FakeRuntime:
@@ -196,3 +198,82 @@ async def test_generate_code_edit_result_marks_no_changes():
     assert result.changed_files == []
     assert "no change was necessary" in result.message
     assert any("no supported workspace files changed" in line for line in result.execution_log)
+
+
+@pytest.mark.asyncio
+async def test_opencode_messages_record_each_provider_call():
+    messages = [
+        {"info": {"role": "user", "id": "user-1"}, "parts": []},
+        {
+            "info": {
+                "role": "assistant",
+                "id": "assistant-1",
+                "providerID": "dashscope",
+                "modelID": "qwen3.5-flash-2026-07-01",
+                "cost": 0.003,
+                "tokens": {
+                    "input": 1200,
+                    "output": 300,
+                    "reasoning": 100,
+                    "cache": {"read": 800, "write": 20},
+                },
+            },
+            "parts": [],
+        },
+        {
+            "info": {
+                "role": "assistant",
+                "id": "assistant-3",
+                "providerID": "dashscope",
+                "modelID": "qwen3.5-flash-2026-07-01",
+                "cost": 0.0005,
+                "tokens": {
+                    "input": 100,
+                    "output": 0,
+                    "reasoning": 0,
+                    "cache": {"read": 0, "write": 0},
+                },
+            },
+            "error": {"name": "ProviderError", "message": "rate limited"},
+            "parts": [],
+        },
+        {
+            "info": {
+                "role": "assistant",
+                "id": "assistant-2",
+                "providerID": "dashscope",
+                "modelID": "qwen3.5-flash-2026-07-01",
+                "cost": 0.001,
+                "tokens": {
+                    "input": 400,
+                    "output": 50,
+                    "reasoning": 10,
+                    "cache": {"read": 300, "write": 0},
+                },
+            },
+            "parts": [],
+        },
+    ]
+    sink = InMemoryUsageSink()
+
+    with bind_usage_sinks(sink):
+        await _record_opencode_usage(
+            messages,
+            requested_provider="dashscope",
+            requested_model="qwen3.5-flash",
+            session_id="session-1",
+        )
+
+    assert len(sink.events) == 3
+    first = sink.events[0]
+    assert first.provider_request_id == "assistant-1"
+    assert first.usage.provider == "qwen"
+    assert first.usage.requested_model == "qwen3.5-flash"
+    assert first.usage.cached_input_tokens == 800
+    assert first.usage.cache_creation_input_tokens == 20
+    assert first.usage.reasoning_tokens == 100
+    assert str(first.usage.provider_cost) == "0.003"
+    assert first.usage.provider_cost_currency is None
+    assert first.usage.provider_cost_source == "opencode"
+    assert sink.events[1].status == "failed"
+    assert sink.events[1].error_type == "ProviderError"
