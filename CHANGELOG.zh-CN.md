@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+## v0.10.0
+
 ### 新增功能
 
 - 新增 provider-neutral 的 `ModelUsage`、`ModelUsageEvent`、`UsageContext`、按币种聚合与 `UsageSink` API，宿主应用可以持久化模型用量并实现按模型计费。

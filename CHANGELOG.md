@@ -4,6 +4,8 @@
 
 ## Unreleased
 
+## v0.10.0
+
 ### Added
 
 - Added provider-neutral `ModelUsage`, `ModelUsageEvent`, `UsageContext`, currency-aware aggregation, and `UsageSink` APIs for embedding applications to persist model usage and implement model-specific billing.
