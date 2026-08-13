@@ -50,6 +50,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",
+    "@vue/server-renderer": "^3.5.13",
     "monaco-editor": "^0.52.2",
     "typescript": "~5.9.3",
     "vite": "^6.0.0",

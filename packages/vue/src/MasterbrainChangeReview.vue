@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { CodeEditChangedFile, CodeEditResponse } from '@airalogy/masterbrain-client';
+import type { MasterbrainMessageOverrides } from './i18n.js';
+import { computed, toRef } from 'vue';
+import { useMasterbrainI18n } from './i18n.js';
 
 const props = withDefaults(defineProps<{
   result: CodeEditResponse;
@@ -7,6 +10,8 @@ const props = withDefaults(defineProps<{
   showApply?: boolean;
   showHeader?: boolean;
   showFooter?: boolean;
+  locale?: string | null;
+  messages?: MasterbrainMessageOverrides | null;
   title?: string;
   ariaLabel?: string;
   summaryLabel?: string;
@@ -28,22 +33,31 @@ const props = withDefaults(defineProps<{
   showApply: true,
   showHeader: true,
   showFooter: true,
-  title: 'Review AI changes',
-  ariaLabel: 'Review AI changes',
-  summaryLabel: 'Change summary',
-  detailsLabel: 'Technical diff',
-  closeLabel: 'Close',
-  applyLabel: 'Apply changes',
-  applyingLabel: 'Applying…',
-  safeHint: 'The change set passed deterministic checks.',
-  reviewHint: 'This change set needs your attention before it is applied.',
-  fileCountLabel: 'file(s)',
-  safeLabel: 'Safe',
-  warningLabel: 'Warning',
-  destructiveLabel: 'Destructive',
-  createdLabel: 'Created',
-  modifiedLabel: 'Modified',
-  deletedLabel: 'Deleted',
+});
+
+const i18n = useMasterbrainI18n({
+  locale: toRef(props, 'locale'),
+  messages: toRef(props, 'messages'),
+});
+const labels = computed(() => {
+  const title = props.title ?? i18n.t('changeReview.title');
+  return {
+    title,
+    ariaLabel: props.ariaLabel ?? title,
+    summary: props.summaryLabel ?? i18n.t('changeReview.summary'),
+    details: props.detailsLabel ?? i18n.t('changeReview.technicalDiff'),
+    close: props.closeLabel ?? i18n.t('changeReview.close'),
+    apply: props.applyLabel ?? i18n.t('changeReview.applyChanges'),
+    applying: props.applyingLabel ?? i18n.t('changeReview.applying'),
+    safeHint: props.safeHint ?? i18n.t('changeReview.safeHint'),
+    reviewHint: props.reviewHint ?? i18n.t('changeReview.reviewHint'),
+    safe: props.safeLabel ?? i18n.t('changeReview.safe'),
+    warning: props.warningLabel ?? i18n.t('changeReview.warning'),
+    destructive: props.destructiveLabel ?? i18n.t('changeReview.destructive'),
+    created: props.createdLabel ?? i18n.t('changeReview.created'),
+    modified: props.modifiedLabel ?? i18n.t('changeReview.modified'),
+    deleted: props.deletedLabel ?? i18n.t('changeReview.deleted'),
+  };
 });
 
 defineEmits<{
@@ -52,26 +66,32 @@ defineEmits<{
 }>();
 
 function statusLabel(change: CodeEditChangedFile) {
-  if (change.status === 'created') return props.createdLabel;
-  if (change.status === 'modified') return props.modifiedLabel;
-  return props.deletedLabel;
+  if (change.status === 'created') return labels.value.created;
+  if (change.status === 'modified') return labels.value.modified;
+  return labels.value.deleted;
 }
 
 function riskLabel() {
-  if (props.result.risk.level === 'safe') return props.safeLabel;
-  if (props.result.risk.level === 'warning') return props.warningLabel;
-  return props.destructiveLabel;
+  if (props.result.risk.level === 'safe') return labels.value.safe;
+  if (props.result.risk.level === 'warning') return labels.value.warning;
+  return labels.value.destructive;
+}
+
+function fileCountText() {
+  return props.fileCountLabel
+    ? `${props.result.changed_files.length} ${props.fileCountLabel}`
+    : i18n.t('changeReview.fileCount', { count: props.result.changed_files.length });
 }
 </script>
 
 <template>
-  <section class="masterbrain-change-review" :aria-label="props.ariaLabel">
+  <section class="masterbrain-change-review" :aria-label="labels.ariaLabel">
     <slot name="header" :risk-label="riskLabel()">
       <header v-if="props.showHeader" class="masterbrain-change-review__header">
         <div>
-          <h2 class="masterbrain-change-review__title">{{ props.title }}</h2>
+          <h2 class="masterbrain-change-review__title">{{ labels.title }}</h2>
           <p class="masterbrain-change-review__hint">
-            {{ props.result.risk.level === 'safe' ? props.safeHint : props.reviewHint }}
+            {{ props.result.risk.level === 'safe' ? labels.safeHint : labels.reviewHint }}
           </p>
         </div>
         <span :class="['masterbrain-change-review__risk', `masterbrain-change-review__risk--${props.result.risk.level}`]">
@@ -82,8 +102,8 @@ function riskLabel() {
 
     <slot name="summary">
       <div class="masterbrain-change-review__summary">
-        <strong>{{ props.summaryLabel }}</strong>
-        <span>{{ props.result.changed_files.length }} {{ props.fileCountLabel }}</span>
+        <strong>{{ labels.summary }}</strong>
+        <span>{{ fileCountText() }}</span>
         <p>{{ props.result.message }}</p>
       </div>
     </slot>
@@ -104,7 +124,7 @@ function riskLabel() {
       </slot>
       <slot name="diff" :change="change">
         <details>
-          <summary>{{ props.detailsLabel }}</summary>
+          <summary>{{ labels.details }}</summary>
           <pre class="masterbrain-change-review__diff">{{ change.diff }}</pre>
         </details>
       </slot>
@@ -112,7 +132,7 @@ function riskLabel() {
 
     <slot name="footer">
       <footer v-if="props.showFooter" class="masterbrain-change-review__footer">
-        <button type="button" class="masterbrain-change-review__button" @click="$emit('close')">{{ props.closeLabel }}</button>
+        <button type="button" class="masterbrain-change-review__button" @click="$emit('close')">{{ labels.close }}</button>
         <button
           v-if="props.showApply && props.result.risk.recommended_action !== 'block'"
           type="button"
@@ -120,7 +140,7 @@ function riskLabel() {
           :disabled="props.applying"
           @click="$emit('apply')"
         >
-          {{ props.applying ? props.applyingLabel : props.applyLabel }}
+          {{ props.applying ? labels.applying : labels.apply }}
         </button>
       </footer>
     </slot>

@@ -36,7 +36,7 @@ Python 包现在围绕稳定的 core/provider/API 边界组织：
 
 client 包负责传输注入、响应归一化、风险建议、基于哈希的冲突检查、原子 mutation 契约和撤销语义。Vue 包负责 composable 状态和可复用的变更审核/状态视图；其 `./monaco` 子路径提供可选 Monaco Diff 组件。
 
-宿主产品保留认证、计费、审计、路由、国际化、弹窗/布局壳和产品特定 workspace adapter。浏览器客户端永远不接收模型供应商密钥。
+宿主产品保留认证、计费、审计、路由、产品专属文案、弹窗/布局壳和产品特定 workspace adapter。`@airalogy/masterbrain-vue` 负责自身共享 UI 的中英文文案，宿主可通过应用插件、局部 Provider 或组件属性传入当前语言。浏览器客户端永远不接收模型供应商密钥。
 
 ## Endpoint 优先的组织方式
 

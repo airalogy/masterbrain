@@ -36,7 +36,7 @@ Downstream applications use the Python package or HTTP API for backend integrati
 
 The client package owns transport injection, response normalization, risk recommendations, hash-based conflict checks, atomic mutation contracts, and undo semantics. The Vue package owns composable state and reusable change review/status views. Its `./monaco` subpath exposes an optional Monaco Diff component.
 
-Host products keep authentication, billing, audit, routing, localization, modal/layout shells, and product-specific workspace adapters. Browser clients never receive model-provider credentials.
+Host products keep authentication, billing, audit, routing, product-specific messages, modal/layout shells, and workspace adapters. `@airalogy/masterbrain-vue` owns the English and Chinese messages for its shared UI and accepts the host locale through an application plugin, subtree provider, or component prop. Browser clients never receive model-provider credentials.
 
 ## Endpoint-first organization
 
