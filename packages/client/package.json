@@ -1,6 +1,6 @@
 {
   "name": "@airalogy/masterbrain-client",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Framework-neutral client and workspace change contract for Masterbrain",
   "repository": {
     "type": "git",
@@ -12,7 +12,11 @@
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
-  "files": ["dist", "schema", "README.md"],
+  "files": [
+    "dist",
+    "schema",
+    "README.md"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
