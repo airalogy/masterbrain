@@ -1,5 +1,11 @@
 # @airalogy/masterbrain-vue
 
+## 0.2.0
+
+### Minor Changes
+
+- bbca8a0: Add reactive built-in English and Chinese localization with app, provider, and component-level configuration, locale-specific message overrides, fallback behavior, and localized change review/status primitives.
+
 ## 0.1.0
 
 ### Minor Changes
