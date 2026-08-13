@@ -1,12 +1,18 @@
 import type {
   ChatApiRequest,
-  CodeEditRequest,
-  CodeEditResponse,
   ProtocolGenRequest,
   ModelConfig,
   ProtocolDebugRequest,
   ProtocolDebugResponse,
 } from '../types';
+import {
+  MasterbrainClient,
+  createFetchTransport,
+  type CodeEditRequest,
+  type CodeEditResponse,
+} from '@airalogy/masterbrain-client';
+
+export const masterbrainClient = new MasterbrainClient(createFetchTransport());
 
 async function readApiError(res: Response): Promise<string> {
   const fallback = `API error ${res.status}`;
@@ -96,7 +102,7 @@ export async function* streamChatLanguage(req: ChatApiRequest): AsyncGenerator<s
 }
 
 export async function runCodeEdit(req: CodeEditRequest): Promise<CodeEditResponse> {
-  return requestJson<CodeEditResponse>('/api/endpoints/code_edit', req);
+  return masterbrainClient.runCodeEdit(req);
 }
 
 /** Protocol generation v3 - single unified .aimd file */

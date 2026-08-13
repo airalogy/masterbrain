@@ -1,0 +1,58 @@
+{
+  "name": "@airalogy/masterbrain-vue",
+  "version": "0.0.0",
+  "description": "Vue composables and UI primitives for Masterbrain-assisted workspace editing",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YANG-Zijie/masterbrain.git",
+    "directory": "packages/vue"
+  },
+  "homepage": "https://github.com/YANG-Zijie/masterbrain#readme",
+  "bugs": "https://github.com/YANG-Zijie/masterbrain/issues",
+  "type": "module",
+  "license": "Apache-2.0",
+  "sideEffects": ["*.css"],
+  "files": ["dist", "README.md"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./monaco": {
+      "types": "./dist/monaco.d.ts",
+      "import": "./dist/monaco.js"
+    },
+    "./style.css": "./dist/masterbrain-vue.css"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "vite build && vue-tsc -p tsconfig.build.json --declaration --emitDeclarationOnly --outDir dist",
+    "type-check": "vue-tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@airalogy/masterbrain-client": "0.0.0"
+  },
+  "peerDependencies": {
+    "monaco-editor": ">=0.52.0",
+    "vue": ">=3.4.0"
+  },
+  "peerDependenciesMeta": {
+    "monaco-editor": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "monaco-editor": "^0.52.2",
+    "typescript": "~5.9.3",
+    "vite": "^6.0.0",
+    "vitest": "^3.2.4",
+    "vue": "^3.5.13",
+    "vue-tsc": "^2.2.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

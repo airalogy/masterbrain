@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Query, Request, Response
 from masterbrain.workspace_manager import workspace_manager
 
 from .types import (
+    ApplyWorkspaceMutationsInput,
     CreateWorkspaceFolderInput,
     OpenWorkspaceInput,
     RenameWorkspaceFileInput,
@@ -90,6 +91,20 @@ async def create_workspace_folder(payload: CreateWorkspaceFolderInput) -> Worksp
         return _workspace_state()
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@workspace_router.post("/workspace/mutations", response_model=WorkspaceState)
+async def apply_workspace_mutations(
+    payload: ApplyWorkspaceMutationsInput,
+) -> WorkspaceState:
+    """Apply one AI change set atomically to the local workspace."""
+    try:
+        workspace_manager.apply_mutations(
+            [mutation.model_dump() for mutation in payload.mutations]
+        )
+        return _workspace_state()
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @workspace_router.post("/workspace/import-zip", response_model=WorkspaceState)

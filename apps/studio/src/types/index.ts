@@ -3,7 +3,7 @@ export interface FileEntry {
   name: string;
   path: string;
   content: string;
-  type: 'aimd' | 'py' | 'other';
+  type: 'aimd' | 'py' | 'toml' | 'other';
   isManual?: boolean; // created/added by user (not from ZIP)
 }
 
@@ -113,14 +113,8 @@ export interface EditorSelection {
   endOffset: number;
 }
 
-export interface CodeChange {
-  path: string;
-  name: string;
-  type: 'aimd' | 'py';
-  status: 'created' | 'modified' | 'deleted';
-  content: string;
-  diff: string;
-}
+import type { CodeEditChangedFile, CodeEditResponse } from '@airalogy/masterbrain-client';
+export type CodeChange = CodeEditChangedFile;
 
 // Chat types
 export type MessageRole = 'user' | 'assistant';
@@ -134,6 +128,9 @@ export interface ChatMessage {
   aimdBlocks?: string[];
   changedFiles?: CodeChange[];
   editStatus?: 'changed' | 'no_changes';
+  codeEditResult?: CodeEditResponse;
+  codeEditAction?: 'answer' | 'applied' | 'review' | 'blocked' | 'undone';
+  codeEditOriginalContents?: Record<string, string>;
   executionLog?: string[];
   stepPending?: boolean; // v1: waiting for user confirm/regenerate
 }
@@ -162,27 +159,7 @@ export interface ChatApiRequest {
   messages: Array<{ role: string; content: string }>;
 }
 
-export interface CodeEditRequest {
-  model: ModelConfig;
-  prompt: string;
-  files: Array<{ path: string; content: string; type: FileEntry['type'] }>;
-  active_file_path?: string;
-  selection?: {
-    text: string;
-    start_offset: number;
-    end_offset: number;
-  };
-  chat_history: Array<{ role: MessageRole; content: string }>;
-}
-
-export interface CodeEditResponse {
-  runtime: 'opencode';
-  message: string;
-  edit_status: 'changed' | 'no_changes';
-  changed_files: CodeChange[];
-  warnings: string[];
-  execution_log: string[];
-}
+export type { CodeEditRequest, CodeEditResponse } from '@airalogy/masterbrain-client';
 
 export interface ProtocolGenRequest {
   use_model: ModelConfig;

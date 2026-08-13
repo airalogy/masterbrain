@@ -12,14 +12,16 @@ Masterbrain 现在采用轻量 monorepo 结构：
 ```txt
 masterbrain/
 ├── packages/
-│   └── masterbrain/  # 发布到 PyPI 的 Python 包、core/provider/API runtime、测试
+│   ├── masterbrain/  # 发布到 PyPI 的 Python 包与 API runtime
+│   ├── client/       # 框架无关的 npm client 与变更契约
+│   └── vue/          # Vue composable、审核 UI 与可选 Monaco Diff
 ├── apps/
 │   └── studio/       # Vue 3 + TypeScript 独立前端
 ├── docs/
 └── README.zh-CN.md
 ```
 
-`masterbrain` 按运行时依赖不同的基础包：backend 依赖已发布的 `airalogy` Python 包，frontend 依赖已发布的 `@airalogy/aimd-*` npm 包。桌面版 Masterbrain 已支持把 `.aira` 归档导入本地 SQLite library，在 UI 中浏览导入的 protocol 和 record，并在需要时把某个 protocol 一键重新装载到当前 workspace。
+`masterbrain` 按运行时依赖不同的基础包：backend 依赖已发布的 `airalogy` Python 包，frontend AIMD 能力依赖已发布的 `@airalogy/aimd-*` npm 包。可复用 AI 集成通过 `@airalogy/masterbrain-client` 和 `@airalogy/masterbrain-vue` 发布；Studio 是参考宿主，Platform 等产品仍负责认证、计费、审计、路由和产品壳。
 
 关于 `masterbrain`、`airalogy`、`aimd` 三者的仓库关系、本地联调方式，以及跨 repo 的 release 顺序，见 [`CONTRIBUTING.zh-CN.md`](./CONTRIBUTING.zh-CN.md)。
 当前的平台覆盖范围和打包限制见 [`PLATFORM_SUPPORT.zh-CN.md`](./PLATFORM_SUPPORT.zh-CN.md)。
@@ -31,7 +33,6 @@ PyPI 自动发布流程见 [`RELEASING.zh-CN.md`](./RELEASING.zh-CN.md)。
 
 ```shell
 npm install
-npm --prefix apps/studio install
 npm run studio:build
 ```
 
@@ -85,7 +86,7 @@ uv run uvicorn masterbrain.fastapi.main:app --reload --host 127.0.0.1 --port 808
 在仓库根目录启动 Studio 前端：
 
 ```shell
-npm --prefix apps/studio install
+npm install
 npm run studio:dev
 ```
 
@@ -101,7 +102,7 @@ curl http://127.0.0.1:8080/api/health/providers
 
 ## 打包
 
-PyPI 发布由 GitHub Actions 在推送 `v*` tag 时自动执行。完整流程见 [`RELEASING.zh-CN.md`](./RELEASING.zh-CN.md)。
+PyPI 在推送 `v*` tag 时发布；两个公开 npm 包通过 `main` 上的 Changesets 发布。完整流程见 [`RELEASING.zh-CN.md`](./RELEASING.zh-CN.md)。
 
 在 `packages/masterbrain` 中构建本地桌面包：
 

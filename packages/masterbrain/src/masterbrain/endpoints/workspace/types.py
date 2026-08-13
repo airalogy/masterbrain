@@ -7,7 +7,7 @@ class WorkspaceFile(BaseModel):
     name: str
     path: str
     content: str
-    type: Literal["aimd", "py", "other"]
+    type: Literal["aimd", "py", "toml", "other"]
 
 
 class WorkspaceState(BaseModel):
@@ -36,6 +36,22 @@ class RenameWorkspaceFileInput(BaseModel):
 
 class CreateWorkspaceFolderInput(BaseModel):
     path: str
+
+
+class WorkspaceMutationInput(BaseModel):
+    path: str
+    type: Literal["aimd", "py", "toml"]
+    status: Literal["created", "modified", "deleted"]
+    content: str = ""
+    expected_hash: str | None = Field(
+        description="Expected current SHA-256, or null when the file must not exist.",
+    )
+
+
+class ApplyWorkspaceMutationsInput(BaseModel):
+    change_set_id: str | None = None
+    operation: Literal["apply", "undo"]
+    mutations: list[WorkspaceMutationInput] = Field(min_length=1)
 
 
 class RenameWorkspaceFileOutput(BaseModel):

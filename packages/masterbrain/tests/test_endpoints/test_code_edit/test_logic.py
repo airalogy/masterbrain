@@ -155,6 +155,11 @@ def test_compute_workspace_changes_reports_create_modify_delete():
         "deleted",
         "modified",
     ]
+    assert changed_files[0].before_hash is not None
+    assert changed_files[0].after_hash is None
+    assert changed_files[1].before_hash is not None
+    assert changed_files[1].after_hash is not None
+    assert changed_files[1].before_hash != changed_files[1].after_hash
 
 
 def test_sync_workspace_removes_stale_files(tmp_path: Path):
@@ -215,6 +220,11 @@ async def test_generate_code_edit_result_uses_runtime_and_collects_changes():
         "protocol.aimd",
     ]
     assert result.edit_status == "changed"
+    assert result.contract_version == "1"
+    assert result.outcome == "changed"
+    assert result.change_set_id is not None
+    assert result.risk.level == "warning"
+    assert result.risk.recommended_action == "review"
     assert any("enable_thinking" in warning for warning in result.warnings)
     assert any("helper.py" in warning for warning in result.warnings)
     assert any("Created OpenCode session" in line for line in result.execution_log)
@@ -240,6 +250,10 @@ async def test_generate_code_edit_result_marks_no_changes():
     )
 
     assert result.edit_status == "no_changes"
+    assert result.outcome == "answer"
+    assert result.change_set_id is None
+    assert result.risk.level == "safe"
+    assert result.risk.recommended_action == "auto_apply"
     assert result.changed_files == []
     assert "no change was necessary" in result.message
     assert any("no supported workspace files changed" in line for line in result.execution_log)

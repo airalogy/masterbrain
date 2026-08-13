@@ -1,6 +1,10 @@
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+
+
+Sha256 = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+ChangeSetId = Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")]
 
 
 class SupportedModels(BaseModel):
@@ -81,14 +85,55 @@ class CodeEditChangedFile(BaseModel):
         description="Latest file content. Empty when the file was deleted.",
     )
     diff: str = Field(description="Unified diff against the incoming workspace state")
+    before_hash: Sha256 | None = Field(
+        default=None,
+        description="SHA-256 of the incoming content. Null when the file is created.",
+    )
+    after_hash: Sha256 | None = Field(
+        default=None,
+        description="SHA-256 of the resulting content. Null when the file is deleted.",
+    )
+
+
+class CodeEditRisk(BaseModel):
+    """Host-facing recommendation for applying a returned change set."""
+
+    level: Literal["safe", "warning", "destructive"] = "safe"
+    reasons: list[str] = Field(default_factory=list)
+    recommended_action: Literal["auto_apply", "review", "block"] = "auto_apply"
 
 
 class CodeEditOutput(BaseModel):
     """Response payload for opencode-backed code editing."""
 
     runtime: Literal["opencode"] = "opencode"
+    contract_version: Literal["1"] = "1"
+    outcome: Literal["answer", "changed"] = "answer"
+    change_set_id: ChangeSetId | None = Field(
+        default=None,
+        description="Stable content-derived identifier for the returned workspace changes.",
+    )
     message: str
     edit_status: Literal["changed", "no_changes"] = "no_changes"
     changed_files: list[CodeEditChangedFile] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     execution_log: list[str] = Field(default_factory=list)
+    risk: CodeEditRisk = Field(default_factory=CodeEditRisk)
+
+    @model_validator(mode="after")
+    def validate_change_state(self) -> "CodeEditOutput":
+        has_changes = bool(self.changed_files)
+        if self.outcome != ("changed" if has_changes else "answer"):
+            raise ValueError("outcome must match changed_files")
+        if self.edit_status != ("changed" if has_changes else "no_changes"):
+            raise ValueError("edit_status must match changed_files")
+        if has_changes != (self.change_set_id is not None):
+            raise ValueError("change_set_id must be present exactly when files changed")
+        unsafe_to_auto_apply = (
+            bool(self.warnings)
+            or self.risk.level != "safe"
+            or any(change.status == "deleted" for change in self.changed_files)
+        )
+        if unsafe_to_auto_apply and self.risk.recommended_action == "auto_apply":
+            raise ValueError("unsafe changes cannot recommend auto_apply")
+        return self

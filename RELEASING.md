@@ -2,7 +2,7 @@
 
 [中文版本](RELEASING.zh-CN.md)
 
-Masterbrain publishes the `masterbrain` Python package to PyPI from GitHub Actions when a version tag like `v0.8.1` is pushed.
+Masterbrain has independent Python and npm release tracks. The `masterbrain` Python package is published to PyPI when a `v*` tag is pushed. The public npm packages are versioned and published with Changesets from `main`.
 
 ## Release Flow
 
@@ -41,7 +41,23 @@ uv version --bump minor
 uv version --bump major
 ```
 
-`packages/masterbrain/pyproject.toml` is the only hardcoded package version source in this repository.
+`packages/masterbrain/pyproject.toml` is the Python version source. It is independent from npm package versions.
+
+## npm packages and Changesets
+
+Feature and fix changes to `@airalogy/masterbrain-client` or `@airalogy/masterbrain-vue` must include a file under `.changeset/`. Do not edit their versions or generated package changelogs by hand.
+
+After a change reaches `main`, `.github/workflows/release-npm.yml` opens or updates the version PR. Merging that PR publishes the changed packages to npm with GitHub Actions provenance. Configure the repository secret `NPM_TOKEN` with permission to publish the `@airalogy` scope.
+
+The version command also synchronizes the root npm lockfile after Changesets updates package versions, so the generated release PR remains compatible with `npm ci`.
+
+Useful local checks:
+
+```bash
+npm run packages:type-check
+npm run packages:test
+npm run studio:build
+```
 
 ## PyPI Setup
 
@@ -59,4 +75,5 @@ Configure this once in the PyPI project settings:
 - Normal feature work should not bump versions or edit changelogs unless it is explicitly release preparation.
 - Keep the intended Git tag, both changelog entries, and the version in `packages/masterbrain/pyproject.toml` aligned.
 - `CHANGELOG.md` is the default English changelog; `CHANGELOG.zh-CN.md` is the Chinese version and should be kept in sync.
-- The PyPI workflow publishes only the Python package under `packages/masterbrain`; Studio frontend artifacts are not uploaded to PyPI as separate npm packages.
+- The PyPI workflow publishes only the Python package under `packages/masterbrain`.
+- The npm workflow publishes only `packages/client` and `packages/vue`; Studio remains private and is never published.

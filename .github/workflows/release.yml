@@ -68,7 +68,14 @@ jobs:
             tests/test_endpoints/test_paper_generation/test_types.py \
             tests/test_endpoints/test_protocol_debug/test_types.py \
             tests/test_endpoints/test_code_edit/test_logic.py \
-            tests/test_endpoints/test_library/test_router.py
+            tests/test_endpoints/test_code_edit/test_router.py \
+            tests/test_endpoints/test_library/test_router.py \
+            tests/test_endpoints/test_workspace/test_router.py \
+            tests/test_endpoints/test_workspace/test_workspace_manager.py
+
+      - name: Verify frontend contract fixture
+        working-directory: packages/masterbrain
+        run: UV_CACHE_DIR=.uv-cache uv run --no-sync python ../../scripts/export_code_edit_contract.py --check
 
       - name: Build distributions
         working-directory: packages/masterbrain

@@ -8,13 +8,14 @@
 
 - `airalogy` is the Python package for protocol, record, and archive primitives such as `.aira`.
 - `aimd` is the TypeScript package set for AIMD-related frontend/runtime implementations.
-- `masterbrain` is the end-user application layer that consumes them.
+- `masterbrain` provides the AI runtime, reusable client/UI capability packages, and the Studio reference application.
 
 The intended repository model is:
 
 - keep all three as separate repos
 - `masterbrain` backend depends on `airalogy`
 - `masterbrain` frontend depends on published `@airalogy/aimd-*` npm packages
+- downstream web products consume published `@airalogy/masterbrain-client` and optionally `@airalogy/masterbrain-vue`
 - `airalogy` and `aimd` do not depend on each other as packages
 - local sibling checkouts can be used as a convenient working-copy layout for cross-repo validation
 
@@ -90,6 +91,7 @@ Treat both `airalogy` and `aimd` as package dependencies, not as internal source
 - Do not reach into private implementation details unless you are prepared to stabilize them.
 - If `masterbrain` needs a backend capability repeatedly, add or refine the API in `airalogy` instead of duplicating `.aira` or protocol logic inside `masterbrain`.
 - If `masterbrain` needs a frontend AIMD capability repeatedly, add or refine it in `aimd` instead of keeping a divergent local implementation.
+- Put transport, response normalization, risk policy, conflict-safe apply/undo, and host-neutral AI UI in the Masterbrain npm packages. Keep authentication, billing, audit, routing, localization, and product-specific editor adapters in the host product.
 
 ## Release Checklist
 
@@ -112,9 +114,9 @@ uv run python -m pytest
 ```
 
 ```bash
-cd apps/studio
 npm install
-npm run build
+npm run packages:test
+npm run studio:build
 ```
 
 Use `uv run python -m pytest` instead of `uv run pytest` in this repo so the Python module path is resolved consistently with the local dependency layout.

@@ -34,6 +34,7 @@ from masterbrain.endpoints.code_edit.types import (
     CodeEditChangedFile,
     CodeEditInput,
     CodeEditOutput,
+    CodeEditRisk,
 )
 from masterbrain.usage import UsageCallTracker, to_usage_mapping
 from masterbrain.utils.llm import ensure_model_api_key
@@ -517,10 +518,59 @@ def compute_workspace_changes(
                 status=status,  # type: ignore[arg-type]
                 content=content,
                 diff=diff,
+                before_hash=_content_hash(before),
+                after_hash=_content_hash(after),
             )
         )
 
     return changed_files, warnings
+
+
+def _content_hash(content: str | None) -> str | None:
+    if content is None:
+        return None
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+def _change_set_id(changes: list[CodeEditChangedFile]) -> str | None:
+    if not changes:
+        return None
+    payload = [
+        {
+            "path": change.path,
+            "status": change.status,
+            "before_hash": change.before_hash,
+            "after_hash": change.after_hash,
+        }
+        for change in changes
+    ]
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode(
+        "utf-8"
+    )
+    return f"sha256:{hashlib.sha256(encoded).hexdigest()}"
+
+
+def _classify_change_risk(
+    changes: list[CodeEditChangedFile],
+    warnings: list[str],
+) -> CodeEditRisk:
+    deleted_paths = [change.path for change in changes if change.status == "deleted"]
+    if deleted_paths:
+        return CodeEditRisk(
+            level="destructive",
+            reasons=[
+                f"Deletes workspace file: {path}" for path in deleted_paths
+            ]
+            + warnings,
+            recommended_action="review",
+        )
+    if warnings:
+        return CodeEditRisk(
+            level="warning",
+            reasons=warnings,
+            recommended_action="review",
+        )
+    return CodeEditRisk()
 
 
 async def _wait_for_server(
@@ -1166,10 +1216,14 @@ async def generate_code_edit_result(
             level=logging.WARNING,
         )
 
+    edit_status = "changed" if changed_files else "no_changes"
     return CodeEditOutput(
         message=run_result.message,
-        edit_status="changed" if changed_files else "no_changes",
+        outcome="changed" if changed_files else "answer",
+        change_set_id=_change_set_id(changed_files),
+        edit_status=edit_status,
         changed_files=changed_files,
         warnings=warnings,
         execution_log=execution_log,
+        risk=_classify_change_risk(changed_files, warnings),
     )

@@ -1,6 +1,7 @@
 """Router tests for the workspace endpoint."""
 
 import io
+import hashlib
 import zipfile
 
 from fastapi.testclient import TestClient
@@ -59,3 +60,122 @@ def test_workspace_zip_import_and_export_round_trip(
         "empty/",
         "protocol.aimd",
     ]
+
+
+def test_workspace_mutations_apply_as_one_change_set(
+    client: TestClient,
+    workspace_root,
+):
+    protocol = workspace_root / "protocol.aimd"
+    protocol.write_text("# Before", encoding="utf-8")
+    response = client.post(
+        "/api/endpoints/workspace/mutations",
+        json={
+            "change_set_id": "sha256:test",
+            "operation": "apply",
+            "mutations": [
+                {
+                    "path": "protocol.aimd",
+                    "type": "aimd",
+                    "status": "modified",
+                    "content": "# After",
+                    "expected_hash": hashlib.sha256(b"# Before").hexdigest(),
+                },
+                {
+                    "path": "model.py",
+                    "type": "py",
+                    "status": "created",
+                    "content": "value = 1\n",
+                    "expected_hash": None,
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 200
+    assert protocol.read_text(encoding="utf-8") == "# After"
+    assert (workspace_root / "model.py").read_text(encoding="utf-8") == "value = 1\n"
+
+
+def test_workspace_mutations_reject_stale_hash_without_partial_writes(
+    client: TestClient,
+    workspace_root,
+):
+    protocol = workspace_root / "protocol.aimd"
+    protocol.write_text("# Local change", encoding="utf-8")
+    response = client.post(
+        "/api/endpoints/workspace/mutations",
+        json={
+            "operation": "apply",
+            "mutations": [
+                {
+                    "path": "model.py",
+                    "type": "py",
+                    "status": "created",
+                    "content": "value = 1\n",
+                    "expected_hash": None,
+                },
+                {
+                    "path": "protocol.aimd",
+                    "type": "aimd",
+                    "status": "modified",
+                    "content": "# AI change",
+                    "expected_hash": hashlib.sha256(b"# Request snapshot").hexdigest(),
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 409
+    assert protocol.read_text(encoding="utf-8") == "# Local change"
+    assert not (workspace_root / "model.py").exists()
+
+
+def test_workspace_mutations_reject_modifying_a_missing_file(
+    client: TestClient,
+    workspace_root,
+):
+    response = client.post(
+        "/api/endpoints/workspace/mutations",
+        json={
+            "operation": "apply",
+            "mutations": [
+                {
+                    "path": "model.py",
+                    "type": "py",
+                    "status": "modified",
+                    "content": "value = 1\n",
+                    "expected_hash": None,
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 409
+    assert not (workspace_root / "model.py").exists()
+
+
+def test_workspace_mutations_reject_creating_an_existing_file(
+    client: TestClient,
+    workspace_root,
+):
+    model = workspace_root / "model.py"
+    model.write_text("value = 1\n", encoding="utf-8")
+    response = client.post(
+        "/api/endpoints/workspace/mutations",
+        json={
+            "operation": "apply",
+            "mutations": [
+                {
+                    "path": "model.py",
+                    "type": "py",
+                    "status": "created",
+                    "content": "value = 2\n",
+                    "expected_hash": hashlib.sha256(b"value = 1\n").hexdigest(),
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 409
+    assert model.read_text(encoding="utf-8") == "value = 1\n"

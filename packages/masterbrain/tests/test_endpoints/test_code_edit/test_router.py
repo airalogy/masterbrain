@@ -13,6 +13,8 @@ def test_code_edit_endpoint_returns_expected_structure(
     async def fake_generate_code_edit_result(_payload):
         return CodeEditOutput(
             message="Changed one file.",
+            outcome="changed",
+            change_set_id=f"sha256:{'c' * 64}",
             edit_status="changed",
             changed_files=[
                 {
@@ -22,6 +24,8 @@ def test_code_edit_endpoint_returns_expected_structure(
                     "status": "modified",
                     "content": "# Updated protocol",
                     "diff": "--- a/protocol.aimd\n+++ b/protocol.aimd\n@@\n-# Old\n+# Updated protocol",
+                    "before_hash": "a" * 64,
+                    "after_hash": "b" * 64,
                 }
             ],
             warnings=[],
@@ -43,6 +47,10 @@ def test_code_edit_endpoint_returns_expected_structure(
     assert response_data["runtime"] == "opencode"
     assert response_data["message"] == "Changed one file."
     assert response_data["edit_status"] == "changed"
+    assert response_data["contract_version"] == "1"
+    assert response_data["outcome"] == "changed"
+    assert response_data["change_set_id"] == f"sha256:{'c' * 64}"
+    assert response_data["risk"]["recommended_action"] == "auto_apply"
     assert len(response_data["changed_files"]) == 1
     assert response_data["changed_files"][0]["path"] == "protocol.aimd"
     assert response_data["warnings"] == []

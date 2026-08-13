@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import os
 import shutil
@@ -9,7 +10,7 @@ import subprocess
 import sys
 import zipfile
 from pathlib import Path, PurePosixPath
-from threading import Lock
+from threading import RLock
 
 
 IGNORED_DIR_NAMES = {
@@ -31,6 +32,8 @@ def detect_type(filename: str) -> str:
         return "aimd"
     if filename.endswith(".py"):
         return "py"
+    if filename.endswith(".toml"):
+        return "toml"
     return "other"
 
 
@@ -167,7 +170,7 @@ class WorkspaceManager:
     """Single-user workspace selection and file IO for local desktop usage."""
 
     def __init__(self) -> None:
-        self._lock = Lock()
+        self._lock = RLock()
         self._root = self._initial_root()
 
     def _initial_root(self) -> Path | None:
@@ -177,15 +180,18 @@ class WorkspaceManager:
         return _safe_root(configured)
 
     def has_workspace(self) -> bool:
-        return self._root is not None
+        with self._lock:
+            return self._root is not None
 
     def current_root(self) -> Path | None:
-        return self._root
+        with self._lock:
+            return self._root
 
     def ensure_root(self) -> Path:
-        if self._root is None:
-            raise ValueError("No workspace directory is selected.")
-        return self._root
+        with self._lock:
+            if self._root is None:
+                raise ValueError("No workspace directory is selected.")
+            return self._root
 
     def set_root(self, path_like: str | Path) -> Path:
         root = _safe_root(path_like)
@@ -218,28 +224,29 @@ class WorkspaceManager:
         return self.set_root(selected)
 
     def snapshot(self) -> dict:
-        root = self.current_root()
-        if root is None:
+        with self._lock:
+            root = self.current_root()
+            if root is None:
+                return {
+                    "mode": "directory",
+                    "has_workspace": False,
+                    "root_path": None,
+                    "files": [],
+                    "folders": [],
+                    "entry_count": 0,
+                    "can_select_directory": _can_open_directory_picker(),
+                }
+
+            files, folders, entry_count = self._collect_entries(root)
             return {
                 "mode": "directory",
-                "has_workspace": False,
-                "root_path": None,
-                "files": [],
-                "folders": [],
-                "entry_count": 0,
+                "has_workspace": True,
+                "root_path": str(root),
+                "files": files,
+                "folders": folders,
+                "entry_count": entry_count,
                 "can_select_directory": _can_open_directory_picker(),
             }
-
-        files, folders, entry_count = self._collect_entries(root)
-        return {
-            "mode": "directory",
-            "has_workspace": True,
-            "root_path": str(root),
-            "files": files,
-            "folders": folders,
-            "entry_count": entry_count,
-            "can_select_directory": _can_open_directory_picker(),
-        }
 
     def _collect_entries(self, root: Path) -> tuple[list[dict], list[str], int]:
         files: list[dict] = []
@@ -309,104 +316,127 @@ class WorkspaceManager:
         return members
 
     def write_file(self, rel_path: str, content: str) -> None:
-        root = self.ensure_root()
-        path = _safe_workspace_path(root, rel_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
+        with self._lock:
+            root = self.ensure_root()
+            path = _safe_workspace_path(root, rel_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
 
     def create_file(self, rel_path: str, content: str = "") -> None:
         self.write_file(rel_path, content)
 
     def delete_file(self, rel_path: str) -> None:
-        root = self.ensure_root()
-        path = _safe_workspace_path(root, rel_path)
-        if not path.exists():
-            return
-        if path.is_dir():
-            raise ValueError(f"Expected a file path but got a directory: {rel_path}")
-        path.unlink()
+        with self._lock:
+            root = self.ensure_root()
+            path = _safe_workspace_path(root, rel_path)
+            if not path.exists():
+                return
+            if path.is_dir():
+                raise ValueError(f"Expected a file path but got a directory: {rel_path}")
+            path.unlink()
 
     def rename_file(self, old_rel_path: str, new_name: str) -> str:
         if "/" in new_name or "\\" in new_name:
             raise ValueError("Rename expects a file name, not a nested path.")
 
-        root = self.ensure_root()
-        old_path = _safe_workspace_path(root, old_rel_path)
-        if not old_path.exists():
-            raise ValueError(f"File does not exist: {old_rel_path}")
+        with self._lock:
+            root = self.ensure_root()
+            old_path = _safe_workspace_path(root, old_rel_path)
+            if not old_path.exists():
+                raise ValueError(f"File does not exist: {old_rel_path}")
 
-        parent = PurePosixPath(old_rel_path).parent
-        new_rel_path = (parent / new_name).as_posix() if str(parent) != "." else new_name
-        new_path = _safe_workspace_path(root, new_rel_path)
+            parent = PurePosixPath(old_rel_path).parent
+            new_rel_path = (parent / new_name).as_posix() if str(parent) != "." else new_name
+            new_path = _safe_workspace_path(root, new_rel_path)
 
-        if new_path.exists() and new_path != old_path:
-            raise ValueError(f"Target file already exists: {new_rel_path}")
+            if new_path.exists() and new_path != old_path:
+                raise ValueError(f"Target file already exists: {new_rel_path}")
 
-        old_path.rename(new_path)
-        return new_rel_path
+            old_path.rename(new_path)
+            return new_rel_path
 
     def create_folder(self, rel_path: str) -> None:
-        root = self.ensure_root()
-        path = _safe_workspace_path(root, rel_path)
-        path.mkdir(parents=True, exist_ok=True)
+        with self._lock:
+            root = self.ensure_root()
+            path = _safe_workspace_path(root, rel_path)
+            path.mkdir(parents=True, exist_ok=True)
+
+    def apply_mutations(self, mutations: list[dict]) -> None:
+        """Validate and apply a file change set with rollback on failure."""
+        if not mutations:
+            raise ValueError("At least one workspace mutation is required.")
+
+        with self._lock:
+            root = self.ensure_root()
+            resolved: list[tuple[dict, Path]] = []
+            backups: dict[Path, bytes | None] = {}
+            seen_paths: set[Path] = set()
+
+            for mutation in mutations:
+                path = _safe_workspace_path(root, str(mutation["path"]))
+                if path in seen_paths:
+                    raise ValueError(
+                        f"Duplicate workspace mutation path: {mutation['path']}"
+                    )
+                seen_paths.add(path)
+                if path.exists() and path.is_dir():
+                    raise ValueError(
+                        f"Expected a file path but got a directory: {mutation['path']}"
+                    )
+
+                current_bytes = path.read_bytes() if path.exists() else None
+                current_hash = (
+                    hashlib.sha256(current_bytes).hexdigest()
+                    if current_bytes is not None
+                    else None
+                )
+                expected_hash = mutation["expected_hash"]
+                if current_hash != expected_hash:
+                    raise ValueError(
+                        f"Workspace file changed before {mutation['status']}: {mutation['path']}"
+                    )
+                if mutation["status"] == "created" and current_bytes is not None:
+                    raise ValueError(
+                        f"Workspace file already exists: {mutation['path']}"
+                    )
+                if (
+                    mutation["status"] in {"modified", "deleted"}
+                    and current_bytes is None
+                ):
+                    raise ValueError(
+                        f"Workspace file does not exist: {mutation['path']}"
+                    )
+
+                backups[path] = current_bytes
+                resolved.append((mutation, path))
+
+            try:
+                for mutation, path in resolved:
+                    if mutation["status"] == "deleted":
+                        if path.exists():
+                            path.unlink()
+                        continue
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text(str(mutation.get("content", "")), encoding="utf-8")
+            except Exception:
+                for path, previous_bytes in backups.items():
+                    if previous_bytes is None:
+                        if path.exists() and path.is_file():
+                            path.unlink()
+                        continue
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_bytes(previous_bytes)
+                raise
 
     def replace_with_directory(self, source_root: str | Path) -> None:
         source = _safe_root(source_root)
-        root = self.ensure_root()
-        self._clear_workspace_contents(root)
+        with self._lock:
+            root = self.ensure_root()
+            self._clear_workspace_contents(root)
 
-        for current_dir, dirnames, filenames in os.walk(source):
-            dir_path = Path(current_dir)
-            rel_dir = dir_path.relative_to(source)
-
-            dirnames[:] = [
-                dirname
-                for dirname in dirnames
-                if not _is_ignored_rel_path(rel_dir / dirname)
-            ]
-
-            for dirname in dirnames:
-                target_dir = _safe_workspace_path(
-                    root,
-                    (rel_dir / dirname).as_posix(),
-                )
-                target_dir.mkdir(parents=True, exist_ok=True)
-
-            for filename in filenames:
-                rel_path = rel_dir / filename
-                if _is_ignored_rel_path(rel_path):
-                    continue
-                source_file = dir_path / filename
-                target_file = _safe_workspace_path(root, rel_path.as_posix())
-                target_file.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source_file, target_file)
-
-    def import_zip_bytes(self, payload: bytes) -> None:
-        root = self.ensure_root()
-        try:
-            with zipfile.ZipFile(io.BytesIO(payload)) as archive:
-                members = self._iter_archive_members(archive)
-                self._clear_workspace_contents(root)
-                for rel_path, info in members:
-                    target = _safe_workspace_path(root, rel_path.as_posix())
-                    if info.is_dir():
-                        target.mkdir(parents=True, exist_ok=True)
-                        continue
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                    with archive.open(info, "r") as src, target.open("wb") as dst:
-                        shutil.copyfileobj(src, dst)
-        except zipfile.BadZipFile as exc:
-            raise ValueError("Uploaded file is not a valid ZIP archive.") from exc
-
-    def export_zip_bytes(self) -> tuple[str, bytes]:
-        root = self.ensure_root()
-        archive_name = f"{root.name or 'workspace'}.zip"
-        buffer = io.BytesIO()
-
-        with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-            for current_dir, dirnames, filenames in os.walk(root):
+            for current_dir, dirnames, filenames in os.walk(source):
                 dir_path = Path(current_dir)
-                rel_dir = dir_path.relative_to(root)
+                rel_dir = dir_path.relative_to(source)
 
                 dirnames[:] = [
                     dirname
@@ -414,17 +444,68 @@ class WorkspaceManager:
                     if not _is_ignored_rel_path(rel_dir / dirname)
                 ]
 
-                if dir_path != root and not dirnames and not filenames:
-                    archive.writestr(f"{rel_dir.as_posix()}/", b"")
+                for dirname in dirnames:
+                    target_dir = _safe_workspace_path(
+                        root,
+                        (rel_dir / dirname).as_posix(),
+                    )
+                    target_dir.mkdir(parents=True, exist_ok=True)
 
                 for filename in filenames:
-                    path = dir_path / filename
-                    rel_path = path.relative_to(root).as_posix()
-                    if _is_ignored_rel_path(PurePosixPath(rel_path)):
+                    rel_path = rel_dir / filename
+                    if _is_ignored_rel_path(rel_path):
                         continue
-                    archive.write(path, rel_path)
+                    source_file = dir_path / filename
+                    target_file = _safe_workspace_path(root, rel_path.as_posix())
+                    target_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(source_file, target_file)
 
-        return archive_name, buffer.getvalue()
+    def import_zip_bytes(self, payload: bytes) -> None:
+        with self._lock:
+            root = self.ensure_root()
+            try:
+                with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+                    members = self._iter_archive_members(archive)
+                    self._clear_workspace_contents(root)
+                    for rel_path, info in members:
+                        target = _safe_workspace_path(root, rel_path.as_posix())
+                        if info.is_dir():
+                            target.mkdir(parents=True, exist_ok=True)
+                            continue
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        with archive.open(info, "r") as src, target.open("wb") as dst:
+                            shutil.copyfileobj(src, dst)
+            except zipfile.BadZipFile as exc:
+                raise ValueError("Uploaded file is not a valid ZIP archive.") from exc
+
+    def export_zip_bytes(self) -> tuple[str, bytes]:
+        with self._lock:
+            root = self.ensure_root()
+            archive_name = f"{root.name or 'workspace'}.zip"
+            buffer = io.BytesIO()
+
+            with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+                for current_dir, dirnames, filenames in os.walk(root):
+                    dir_path = Path(current_dir)
+                    rel_dir = dir_path.relative_to(root)
+
+                    dirnames[:] = [
+                        dirname
+                        for dirname in dirnames
+                        if not _is_ignored_rel_path(rel_dir / dirname)
+                    ]
+
+                    if dir_path != root and not dirnames and not filenames:
+                        archive.writestr(f"{rel_dir.as_posix()}/", b"")
+
+                    for filename in filenames:
+                        path = dir_path / filename
+                        rel_path = path.relative_to(root).as_posix()
+                        if _is_ignored_rel_path(PurePosixPath(rel_path)):
+                            continue
+                        archive.write(path, rel_path)
+
+            return archive_name, buffer.getvalue()
 
 
 workspace_manager = WorkspaceManager()

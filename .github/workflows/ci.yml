@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: masterbrain-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+      - uses: astral-sh/setup-uv@v7
+      - name: Sync Python environment
+        working-directory: packages/masterbrain
+        run: UV_CACHE_DIR=.uv-cache uv sync --locked --dev
+      - name: Verify shared contract
+        working-directory: packages/masterbrain
+        run: UV_CACHE_DIR=.uv-cache uv run --no-sync python ../../scripts/export_code_edit_contract.py --check
+      - name: Run deterministic Python tests
+        working-directory: packages/masterbrain
+        run: |
+          UV_CACHE_DIR=.uv-cache uv run --no-sync python -m pytest \
+            tests/test_packaging/test_desktop_packaging.py \
+            tests/test_providers/test_litellm.py \
+            tests/test_utils/test_llm.py \
+            tests/test_endpoints/test_chat/test_field_input/test_types.py \
+            tests/test_endpoints/test_chat/test_field_input/test_slot_service.py \
+            tests/test_endpoints/test_paper_generation/test_types.py \
+            tests/test_endpoints/test_protocol_debug/test_types.py \
+            tests/test_endpoints/test_code_edit/test_logic.py \
+            tests/test_endpoints/test_code_edit/test_router.py \
+            tests/test_endpoints/test_library/test_router.py \
+            tests/test_endpoints/test_workspace/test_router.py \
+            tests/test_endpoints/test_workspace/test_workspace_manager.py
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run packages:type-check
+      - run: npm run packages:test
+      - run: npm run lint --workspace @airalogy/masterbrain-studio
+      - run: npm run studio:build
+      - run: npm run docs:build

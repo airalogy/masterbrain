@@ -1,4 +1,6 @@
 import { ref, shallowRef, type Ref, type ShallowRef } from 'vue';
+import type { WorkspaceAdapter } from '@airalogy/masterbrain-client';
+import { useCodeEditAssistant } from '@airalogy/masterbrain-vue';
 import type {
   ChatMessage,
   EditorSelection,
@@ -8,7 +10,7 @@ import type {
 } from '../types/index.ts';
 import { DEFAULT_MODEL } from '../types/index.ts';
 import {
-  runCodeEdit,
+  masterbrainClient,
   streamChatLanguage,
   streamProtocolGenV3,
   streamProtocolGenAimd,
@@ -25,6 +27,7 @@ export function useChat(
   activeFile: Readonly<ShallowRef<FileEntry | null>>,
   selection: Readonly<Ref<EditorSelection | null>>,
   hasWorkspace: Readonly<Ref<boolean>>,
+  workspace: WorkspaceAdapter,
   onApplyContent: (content: string, type: 'aimd' | 'py') => void,
   onAutoApply: (name: string, content: string, type: 'aimd' | 'py') => void,
 ) {
@@ -32,6 +35,9 @@ export function useChat(
   const isStreaming = ref(false);
   const model: Ref<ModelConfig> = ref({ ...DEFAULT_MODEL });
   const router: Ref<ProtocolRouter> = ref('v3');
+  const codeEditAssistant = useCodeEditAssistant({ client: masterbrainClient, workspace });
+  const pendingReviewMessageId = ref<string | null>(null);
+  const latestAppliedMessageId = ref<string | null>(null);
 
   let abortFlag = false;
   let confirmResolver: ((confirmed: boolean) => void) | null = null;
@@ -59,7 +65,8 @@ export function useChat(
       throw new Error('Select a workspace directory before using Edit mode.');
     }
 
-    const result = await runCodeEdit({
+    const originalContents = Object.fromEntries(files.value.map(file => [file.path, file.content]));
+    const application = await codeEditAssistant.submit({
       model: model.value,
       prompt: userText,
       files: files.value.map(file => ({
@@ -78,20 +85,31 @@ export function useChat(
         .map(msg => ({ role: msg.role, content: msg.content })),
     });
 
+    const result = application.response;
     const warnings = result.warnings.length > 0
       ? `\n\nWarnings:\n${result.warnings.map(w => `- ${w}`).join('\n')}`
       : '';
-    const changeNotice = result.edit_status === 'changed'
-      ? `\n\nPrepared ${result.changed_files.length} workspace change(s). Review them below, then click Apply or Apply all to write them into the current workspace.`
+    const changeNotice = application.status === 'applied'
+      ? `\n\nApplied ${result.changed_files.length} checked workspace change(s). You can inspect the diff or undo the latest edit.`
+      : application.status === 'review'
+        ? `\n\nPrepared ${result.changed_files.length} workspace change(s) that require review before applying.`
+        : application.status === 'blocked'
+          ? '\n\nThe proposed changes were blocked by the change policy.'
+          : '';
+    const noChangeNotice = application.status === 'answer'
+      ? '\n\nNo workspace files were changed.'
       : '';
-    const noChangeNotice = result.edit_status === 'no_changes'
-      ? '\n\nNo supported workspace files were changed. OpenCode ran successfully, but it either answered directly or decided no edit was needed.'
-      : '';
+
+    if (application.status === 'review') pendingReviewMessageId.value = assistantMsgId;
+    if (application.status === 'applied') latestAppliedMessageId.value = assistantMsgId;
 
     updateMessage(assistantMsgId, {
       content: `${result.message}${changeNotice}${noChangeNotice}${warnings}`,
       streaming: false,
       editStatus: result.edit_status,
+      codeEditResult: result,
+      codeEditAction: application.status,
+      codeEditOriginalContents: originalContents,
       executionLog: result.execution_log.length > 0 ? result.execution_log : undefined,
       changedFiles: result.changed_files.length > 0 ? result.changed_files : undefined,
     });
@@ -286,18 +304,42 @@ export function useChat(
     );
   }
 
-  function removeChangedFile(msgId: string, path: string) {
-    messages.value = messages.value.map(m => {
-      if (m.id !== msgId || !m.changedFiles) return m;
-      const remaining = m.changedFiles.filter(change => change.path !== path);
-      return { ...m, changedFiles: remaining.length > 0 ? remaining : undefined };
-    });
+  async function applyPendingChange(msgId: string) {
+    if (pendingReviewMessageId.value !== msgId) return;
+    try {
+      await codeEditAssistant.applyPending();
+      updateMessage(msgId, { codeEditAction: 'applied' });
+      pendingReviewMessageId.value = null;
+      latestAppliedMessageId.value = msgId;
+    } catch (caught) {
+      const detail = caught instanceof Error ? caught.message : String(caught);
+      const current = messages.value.find(message => message.id === msgId);
+      updateMessage(msgId, {
+        content: `${current?.content ?? ''}\n\nUnable to apply the reviewed changes: ${detail}`,
+      });
+    }
   }
 
-  function dismissChangedFiles(msgId: string) {
-    messages.value = messages.value.map(m =>
-      m.id === msgId ? { ...m, changedFiles: undefined } : m
-    );
+  function dismissPendingChange(msgId: string) {
+    if (pendingReviewMessageId.value !== msgId) return;
+    codeEditAssistant.dismissReview();
+    updateMessage(msgId, { codeEditAction: 'blocked' });
+    pendingReviewMessageId.value = null;
+  }
+
+  async function undoLatestChange(msgId: string) {
+    if (latestAppliedMessageId.value !== msgId) return;
+    try {
+      await codeEditAssistant.undoLatest();
+      updateMessage(msgId, { codeEditAction: 'undone' });
+      latestAppliedMessageId.value = null;
+    } catch (caught) {
+      const detail = caught instanceof Error ? caught.message : String(caught);
+      const current = messages.value.find(message => message.id === msgId);
+      updateMessage(msgId, {
+        content: `${current?.content ?? ''}\n\nUnable to undo the AI changes: ${detail}`,
+      });
+    }
   }
 
   function clearMessages() {
@@ -312,8 +354,13 @@ export function useChat(
     sendMessage,
     applyBlock,
     dismissBlock,
-    removeChangedFile,
-    dismissChangedFiles,
+    applyPendingChange,
+    dismissPendingChange,
+    undoLatestChange,
+    pendingReviewMessageId,
+    latestAppliedMessageId,
+    codeEditApplying: codeEditAssistant.applying,
+    codeEditUndoing: codeEditAssistant.undoing,
     clearMessages,
     confirmStep,
     regenerateStep,

@@ -8,13 +8,14 @@ English version: [`CONTRIBUTING.md`](./CONTRIBUTING.md)
 
 - `airalogy` 是 Python package，负责 protocol、record、`.aira` 等基础能力。
 - `aimd` 是 TypeScript package 集合，负责 AIMD 相关的前端/运行时实现。
-- `masterbrain` 是上层应用。
+- `masterbrain` 提供 AI 运行时、可复用的 client/UI 能力包和 Studio 参考应用。
 
 当前采用的仓库组织方式是：
 
 - 保持三个独立 repo
 - `masterbrain` backend 依赖 `airalogy`
 - `masterbrain` frontend 依赖已发布的 `@airalogy/aimd-*` npm 包
+- 下游 Web 产品依赖已发布的 `@airalogy/masterbrain-client`，并可选使用 `@airalogy/masterbrain-vue`
 - `airalogy` 与 `aimd` 在 package 层面彼此不依赖
 - 本地开发时可以把相关 repo 放在同级目录，便于跨 repo 验证
 
@@ -90,6 +91,7 @@ workspace/
 - 不要默认依赖私有实现细节。
 - 如果 `masterbrain` 反复需要 backend 能力，应优先把该能力补到 `airalogy`，而不是在 `masterbrain` 里重复实现 `.aira` 或 protocol 逻辑。
 - 如果 `masterbrain` 反复需要 frontend AIMD 能力，应优先把该能力补到 `aimd`，而不是继续保留偏离主实现的本地逻辑。
+- 传输层、响应归一化、风险策略、冲突安全的应用/撤销和宿主无关 AI UI 归 Masterbrain npm 包；认证、计费、审计、路由、国际化和产品编辑器适配器归宿主产品。
 
 ## 联合发布清单
 
@@ -112,9 +114,9 @@ uv run python -m pytest
 ```
 
 ```bash
-cd apps/studio
 npm install
-npm run build
+npm run packages:test
+npm run studio:build
 ```
 
 在这个仓库里，推荐使用 `uv run python -m pytest`，而不是 `uv run pytest`，这样在当前本地依赖布局下 Python 模块路径会更稳定。

@@ -12,14 +12,16 @@ Masterbrain now uses a lightweight monorepo layout:
 ```txt
 masterbrain/
 ├── packages/
-│   └── masterbrain/  # Published Python package, core/provider/API runtime, tests
+│   ├── masterbrain/  # Published Python package and API runtime
+│   ├── client/       # Framework-neutral npm client and change contract
+│   └── vue/          # Vue composables, review UI, and optional Monaco Diff
 ├── apps/
 │   └── studio/       # Vue 3 + TypeScript standalone frontend
 ├── docs/
 └── README.md
 ```
 
-`masterbrain` is organized to consume separate published packages by runtime: the backend depends on the published `airalogy` Python package, while frontend AIMD behavior comes from published `@airalogy/aimd-*` npm packages. The desktop app can import `.aira` archives into a local SQLite library, preview imported protocols and records, and load a stored protocol back into the current workspace when needed.
+`masterbrain` is organized to consume separate published packages by runtime: the backend depends on the published `airalogy` Python package, while frontend AIMD behavior comes from published `@airalogy/aimd-*` npm packages. Reusable AI integration is published as `@airalogy/masterbrain-client` and `@airalogy/masterbrain-vue`; Studio is the reference host, while products such as Platform keep ownership of authentication, billing, audit, routing, and their product shell.
 
 For the repo relationship, local joint-development workflow, and cross-repo release order across `masterbrain`, `airalogy`, and `aimd`, see [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 For current platform coverage and packaging limits, see [`PLATFORM_SUPPORT.md`](./PLATFORM_SUPPORT.md).
@@ -31,7 +33,6 @@ Build the frontend once:
 
 ```shell
 npm install
-npm --prefix apps/studio install
 npm run studio:build
 ```
 
@@ -87,7 +88,7 @@ uv run uvicorn masterbrain.fastapi.main:app --reload --host 127.0.0.1 --port 808
 Start the Studio frontend from the repo root:
 
 ```shell
-npm --prefix apps/studio install
+npm install
 npm run studio:dev
 ```
 
@@ -103,7 +104,7 @@ The endpoint returns `200` when every configured provider is healthy. It returns
 
 ## Packaging
 
-PyPI publishing is handled by GitHub Actions on `v*` tag pushes. See [`RELEASING.md`](./RELEASING.md) for the release flow.
+PyPI publishing is handled by GitHub Actions on `v*` tag pushes. The two public npm packages use Changesets on `main`. See [`RELEASING.md`](./RELEASING.md) for both independent release flows.
 
 Build the local desktop bundle from `packages/masterbrain`:
 

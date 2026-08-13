@@ -5,10 +5,12 @@ Masterbrain uses a lightweight monorepo layout:
 ```txt
 masterbrain/
 ├── packages/
-│   └── masterbrain/
-│       ├── pyproject.toml
-│       ├── src/masterbrain/
-│       └── tests/
+│   ├── masterbrain/
+│   │   ├── pyproject.toml
+│   │   ├── src/masterbrain/
+│   │   └── tests/
+│   ├── client/       # Framework-neutral npm package
+│   └── vue/          # Vue package and optional Monaco Diff
 ├── apps/
 │   └── studio/
 │       ├── src/
@@ -28,7 +30,13 @@ The Python package is now organized around a stable core/provider/API boundary:
 - `endpoints/`: FastAPI endpoint contracts and application-specific orchestration
 - `fastapi/`: the deployable HTTP application assembly
 
-Downstream applications should depend on this Python package or its HTTP API, not on the Studio frontend.
+Downstream applications use the Python package or HTTP API for backend integration, `@airalogy/masterbrain-client` for the normalized web contract, and optionally `@airalogy/masterbrain-vue` for host-neutral state and UI. They do not depend on Studio, which is the reference host.
+
+## Frontend capability boundary
+
+The client package owns transport injection, response normalization, risk recommendations, hash-based conflict checks, atomic mutation contracts, and undo semantics. The Vue package owns composable state and reusable change review/status views. Its `./monaco` subpath exposes an optional Monaco Diff component.
+
+Host products keep authentication, billing, audit, routing, localization, modal/layout shells, and product-specific workspace adapters. Browser clients never receive model-provider credentials.
 
 ## Endpoint-first organization
 

@@ -75,7 +75,7 @@ class LibraryFilePreview(BaseModel):
     name: str
     path: str
     content: str
-    type: Literal["aimd", "py", "other"]
+    type: Literal["aimd", "py", "toml", "other"]
 
 
 class LibraryProtocolPreview(BaseModel):

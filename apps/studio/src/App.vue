@@ -8,7 +8,7 @@ import { useFileManager } from './composables/useFileManager.ts';
 import { useLibrary } from './composables/useLibrary.ts';
 import { useChat } from './composables/useChat.ts';
 import { provideTheme, type Theme } from './composables/useTheme.ts';
-import type { CodeChange, EditorSelection, PreviewState } from './types/index.ts';
+import type { EditorSelection, PreviewState } from './types/index.ts';
 
 const leftOpen = ref(true);
 const rightOpen = ref(true);
@@ -26,6 +26,7 @@ watch(theme, (val) => {
 const {
   files, activeFile, hasManualChanges, folders,
   workspaceRoot, workspaceEntryCount, canSelectDirectory, isLoadingWorkspace, workspaceError, hasWorkspace,
+  workspaceAdapter,
   uploadZip, downloadZip, updateFileContent, createFile, deleteFile, renameFile, selectFile, createFolder,
   refreshWorkspace, selectWorkspace, openWorkspace,
 } = useFileManager();
@@ -64,9 +65,11 @@ function handleAutoApply(name: string, content: string, type: 'aimd' | 'py') {
 
 const {
   messages, isStreaming, model, router,
-  sendMessage, applyBlock, dismissBlock, removeChangedFile, dismissChangedFiles, clearMessages,
+  sendMessage, applyBlock, dismissBlock, clearMessages,
+  applyPendingChange, dismissPendingChange, undoLatestChange,
+  pendingReviewMessageId, latestAppliedMessageId, codeEditApplying, codeEditUndoing,
   confirmStep, regenerateStep,
-} = useChat(files, activeFile, editorSelection, hasWorkspace, handleApplyContent, handleAutoApply);
+} = useChat(files, activeFile, editorSelection, hasWorkspace, workspaceAdapter, handleApplyContent, handleAutoApply);
 
 function handleEditorChange(content: string) {
   if (activeFile.value) updateFileContent(activeFile.value.path, content);
@@ -74,22 +77,6 @@ function handleEditorChange(content: string) {
 
 function handleSelectionChange(selection: EditorSelection | null) {
   editorSelection.value = selection;
-}
-
-function applyCodeChange(change: CodeChange, activate = false) {
-  if (change.status === 'deleted') {
-    deleteFile(change.path);
-    return;
-  }
-
-  const existing = files.value.find(file => file.path === change.path);
-  if (existing) {
-    updateFileContent(change.path, change.content);
-    if (activate) selectFile(change.path);
-    return;
-  }
-
-  createFile(change.path, change.content, change.type, false, activate);
 }
 
 function handleApplyBlock(block: string, msgId: string) {
@@ -111,33 +98,10 @@ function handlePreviewBlock(block: string, msgId: string) {
   };
 }
 
-function handlePreviewChangedFile(change: CodeChange, msgId: string) {
-  previewState.value = {
-    source: 'change',
-    content: change.content,
-    type: change.type,
-    msgId,
-    name: change.name,
-    path: change.path,
-  };
-}
-
 function handleKeepPreview() {
   if (!previewState.value) return;
-  if (previewState.value.source === 'change' && previewState.value.path) {
-    applyCodeChange({
-      path: previewState.value.path,
-      name: previewState.value.name,
-      type: previewState.value.type,
-      status: 'modified',
-      content: previewState.value.content,
-      diff: '',
-    }, true);
-    removeChangedFile(previewState.value.msgId, previewState.value.path);
-  } else {
-    handleApplyContent(previewState.value.content, previewState.value.type);
-    dismissBlock(previewState.value.msgId);
-  }
+  handleApplyContent(previewState.value.content, previewState.value.type);
+  dismissBlock(previewState.value.msgId);
   previewState.value = null;
 }
 
@@ -172,23 +136,6 @@ async function handleLoadProtocol(protocolId: number) {
   leftView.value = 'workspace';
 }
 
-function handleApplyChangedFile(change: CodeChange, msgId: string) {
-  applyCodeChange(change, change.status !== 'deleted');
-  removeChangedFile(msgId, change.path);
-  if (previewState.value?.source === 'change' && previewState.value.path === change.path) {
-    previewState.value = null;
-  }
-}
-
-function handleApplyAllChangedFiles(changes: CodeChange[], msgId: string) {
-  for (const change of changes) {
-    applyCodeChange(change, false);
-  }
-  dismissChangedFiles(msgId);
-  if (previewState.value?.source === 'change') {
-    previewState.value = null;
-  }
-}
 </script>
 
 <template>
@@ -281,6 +228,10 @@ function handleApplyAllChangedFiles(changes: CodeChange[], msgId: string) {
         :router="router"
         :theme="theme"
         :has-workspace="hasWorkspace"
+        :pending-review-message-id="pendingReviewMessageId"
+        :latest-applied-message-id="latestAppliedMessageId"
+        :code-edit-applying="codeEditApplying"
+        :code-edit-undoing="codeEditUndoing"
         @update:model="model = $event"
         @update:router="router = $event"
         @theme-toggle="theme = theme === 'dark' ? 'light' : 'dark'"
@@ -288,10 +239,9 @@ function handleApplyAllChangedFiles(changes: CodeChange[], msgId: string) {
         @apply-block="handleApplyBlock"
         @dismiss-block="dismissBlock"
         @preview-block="handlePreviewBlock"
-        @preview-changed-file="handlePreviewChangedFile"
-        @apply-changed-file="handleApplyChangedFile"
-        @apply-all-changed-files="handleApplyAllChangedFiles"
-        @dismiss-changed-files="dismissChangedFiles"
+        @apply-pending-change="applyPendingChange"
+        @dismiss-pending-change="dismissPendingChange"
+        @undo-latest-change="undoLatestChange"
         @apply-raw="handleApplyContent"
         @clear="clearMessages"
         @confirm-step="confirmStep"

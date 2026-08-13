@@ -1,0 +1,386 @@
+{
+  "contract_version": "1",
+  "request": {
+    "$defs": {
+      "ChatHistoryMessage": {
+        "description": "A compact chat history item forwarded to the code-edit runtime.",
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "assistant"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "content"
+        ],
+        "title": "ChatHistoryMessage",
+        "type": "object"
+      },
+      "EditorSelection": {
+        "description": "The current editor selection in the active file.",
+        "properties": {
+          "end_offset": {
+            "description": "Selection end byte offset in the file",
+            "title": "End Offset",
+            "type": "integer"
+          },
+          "start_offset": {
+            "description": "Selection start byte offset in the file",
+            "title": "Start Offset",
+            "type": "integer"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "start_offset",
+          "end_offset"
+        ],
+        "title": "EditorSelection",
+        "type": "object"
+      },
+      "SupportedModels": {
+        "description": "Supported model configurations for code editing.",
+        "properties": {
+          "enable_thinking": {
+            "default": false,
+            "title": "Enable Thinking",
+            "type": "boolean"
+          },
+          "name": {
+            "enum": [
+              "qwen3.5-flash",
+              "qwen3.5-plus",
+              "qwen3-max",
+              "gpt-4.1",
+              "gpt-4.1-mini",
+              "gpt-4o",
+              "gpt-4o-mini"
+            ],
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "SupportedModels",
+        "type": "object"
+      },
+      "WorkspaceFile": {
+        "description": "A frontend workspace file materialized on the backend for code editing.",
+        "properties": {
+          "content": {
+            "description": "Current file content",
+            "title": "Content",
+            "type": "string"
+          },
+          "path": {
+            "description": "Relative workspace path, for example src/model.py",
+            "title": "Path",
+            "type": "string"
+          },
+          "type": {
+            "default": "other",
+            "description": "Frontend file type hint",
+            "enum": [
+              "aimd",
+              "py",
+              "toml",
+              "other"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "content"
+        ],
+        "title": "WorkspaceFile",
+        "type": "object"
+      }
+    },
+    "description": "Request payload for opencode-backed code editing.",
+    "properties": {
+      "active_file_path": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Relative path of the file currently focused in the editor",
+        "title": "Active File Path"
+      },
+      "chat_history": {
+        "items": {
+          "$ref": "#/$defs/ChatHistoryMessage"
+        },
+        "title": "Chat History",
+        "type": "array"
+      },
+      "files": {
+        "items": {
+          "$ref": "#/$defs/WorkspaceFile"
+        },
+        "title": "Files",
+        "type": "array"
+      },
+      "model": {
+        "$ref": "#/$defs/SupportedModels",
+        "default": {
+          "enable_thinking": false,
+          "name": "qwen3.5-flash"
+        }
+      },
+      "prompt": {
+        "description": "The user's current request",
+        "title": "Prompt",
+        "type": "string"
+      },
+      "selection": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/EditorSelection"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null
+      },
+      "workspace_id": {
+        "anyOf": [
+          {
+            "maxLength": 240,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Stable editor workspace identifier used for managed runtime reuse.",
+        "title": "Workspace Id"
+      }
+    },
+    "required": [
+      "prompt"
+    ],
+    "title": "CodeEditInput",
+    "type": "object"
+  },
+  "response": {
+    "$defs": {
+      "CodeEditChangedFile": {
+        "description": "A file change returned from the code-edit runtime.",
+        "properties": {
+          "after_hash": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "SHA-256 of the resulting content. Null when the file is deleted.",
+            "title": "After Hash"
+          },
+          "before_hash": {
+            "anyOf": [
+              {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "SHA-256 of the incoming content. Null when the file is created.",
+            "title": "Before Hash"
+          },
+          "content": {
+            "default": "",
+            "description": "Latest file content. Empty when the file was deleted.",
+            "title": "Content",
+            "type": "string"
+          },
+          "diff": {
+            "description": "Unified diff against the incoming workspace state",
+            "title": "Diff",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "created",
+              "modified",
+              "deleted"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "aimd",
+              "py",
+              "toml"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "name",
+          "type",
+          "status",
+          "diff"
+        ],
+        "title": "CodeEditChangedFile",
+        "type": "object"
+      },
+      "CodeEditRisk": {
+        "description": "Host-facing recommendation for applying a returned change set.",
+        "properties": {
+          "level": {
+            "default": "safe",
+            "enum": [
+              "safe",
+              "warning",
+              "destructive"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "recommended_action": {
+            "default": "auto_apply",
+            "enum": [
+              "auto_apply",
+              "review",
+              "block"
+            ],
+            "title": "Recommended Action",
+            "type": "string"
+          }
+        },
+        "title": "CodeEditRisk",
+        "type": "object"
+      }
+    },
+    "description": "Response payload for opencode-backed code editing.",
+    "properties": {
+      "change_set_id": {
+        "anyOf": [
+          {
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "description": "Stable content-derived identifier for the returned workspace changes.",
+        "title": "Change Set Id"
+      },
+      "changed_files": {
+        "items": {
+          "$ref": "#/$defs/CodeEditChangedFile"
+        },
+        "title": "Changed Files",
+        "type": "array"
+      },
+      "contract_version": {
+        "const": "1",
+        "default": "1",
+        "title": "Contract Version",
+        "type": "string"
+      },
+      "edit_status": {
+        "default": "no_changes",
+        "enum": [
+          "changed",
+          "no_changes"
+        ],
+        "title": "Edit Status",
+        "type": "string"
+      },
+      "execution_log": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Execution Log",
+        "type": "array"
+      },
+      "message": {
+        "title": "Message",
+        "type": "string"
+      },
+      "outcome": {
+        "default": "answer",
+        "enum": [
+          "answer",
+          "changed"
+        ],
+        "title": "Outcome",
+        "type": "string"
+      },
+      "risk": {
+        "$ref": "#/$defs/CodeEditRisk"
+      },
+      "runtime": {
+        "const": "opencode",
+        "default": "opencode",
+        "title": "Runtime",
+        "type": "string"
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Warnings",
+        "type": "array"
+      }
+    },
+    "required": [
+      "message"
+    ],
+    "title": "CodeEditOutput",
+    "type": "object"
+  }
+}

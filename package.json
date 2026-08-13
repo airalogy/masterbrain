@@ -2,19 +2,36 @@
   "name": "masterbrain-docs",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "apps/studio",
+    "packages/client",
+    "packages/vue"
+  ],
   "scripts": {
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "studio:dev": "npm --prefix apps/studio run dev",
-    "studio:build": "npm --prefix apps/studio run build",
-    "studio:preview": "npm --prefix apps/studio run preview",
-    "test:python": "cd packages/masterbrain && UV_CACHE_DIR=.uv-cache uv run python -m pytest tests/test_packaging/test_desktop_packaging.py tests/test_providers/test_litellm.py tests/test_utils/test_llm.py tests/test_endpoints/test_chat/test_field_input/test_types.py tests/test_endpoints/test_chat/test_field_input/test_slot_service.py tests/test_endpoints/test_paper_generation/test_types.py tests/test_endpoints/test_protocol_debug/test_types.py tests/test_endpoints/test_code_edit/test_logic.py tests/test_endpoints/test_library/test_router.py",
+    "studio:dev": "npm run packages:build && npm run dev --workspace @airalogy/masterbrain-studio",
+    "studio:build": "npm run packages:build && npm run build --workspace @airalogy/masterbrain-studio",
+    "studio:preview": "npm run preview --workspace @airalogy/masterbrain-studio",
+    "packages:build": "npm run build --workspace @airalogy/masterbrain-client && npm run build --workspace @airalogy/masterbrain-vue",
+    "packages:test": "npm run packages:build && npm run test --workspace @airalogy/masterbrain-client && npm run test --workspace @airalogy/masterbrain-vue",
+    "packages:type-check": "npm run build --workspace @airalogy/masterbrain-client && npm run type-check --workspace @airalogy/masterbrain-client && npm run type-check --workspace @airalogy/masterbrain-vue",
+    "contract:generate": "cd packages/masterbrain && UV_CACHE_DIR=.uv-cache uv run --no-sync python ../../scripts/export_code_edit_contract.py",
+    "contract:check": "cd packages/masterbrain && UV_CACHE_DIR=.uv-cache uv run --no-sync python ../../scripts/export_code_edit_contract.py --check",
+    "changeset": "changeset",
+    "version:packages": "changeset version && npm install --package-lock-only --ignore-scripts",
+    "release:packages": "npm run contract:check && npm run packages:test && changeset publish",
+    "test:python": "cd packages/masterbrain && UV_CACHE_DIR=.uv-cache uv run python -m pytest tests/test_packaging/test_desktop_packaging.py tests/test_providers/test_litellm.py tests/test_utils/test_llm.py tests/test_endpoints/test_chat/test_field_input/test_types.py tests/test_endpoints/test_chat/test_field_input/test_slot_service.py tests/test_endpoints/test_paper_generation/test_types.py tests/test_endpoints/test_protocol_debug/test_types.py tests/test_endpoints/test_code_edit/test_logic.py tests/test_endpoints/test_code_edit/test_router.py tests/test_endpoints/test_library/test_router.py tests/test_endpoints/test_workspace/test_router.py tests/test_endpoints/test_workspace/test_workspace_manager.py",
     "test:python:all": "cd packages/masterbrain && UV_CACHE_DIR=.uv-cache uv run python -m pytest",
-    "test:studio": "npm --prefix apps/studio run type-check",
-    "test": "npm run test:python && npm run test:studio"
+    "test:studio": "npm run packages:build && npm run type-check --workspace @airalogy/masterbrain-studio",
+    "test": "npm run test:python && npm run packages:test && npm run test:studio"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.7",
+    "@vitejs/plugin-vue": "^5.2.3",
+    "typescript": "~5.9.3",
+    "vite": "^6.0.0",
     "vitepress": "^1.0.0"
   }
 }

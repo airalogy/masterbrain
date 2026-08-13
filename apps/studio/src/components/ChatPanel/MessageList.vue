@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import MarkdownIt from 'markdown-it';
-import type { ChatMessage, CodeChange } from '../../types/index.ts';
+import type { CodeEditChangedFile } from '@airalogy/masterbrain-client';
+import { MasterbrainChangeReview, MasterbrainChangeStatus } from '@airalogy/masterbrain-vue';
+import { MasterbrainMonacoDiff } from '@airalogy/masterbrain-vue/monaco';
+import type { ChatMessage } from '../../types/index.ts';
 import AiAvatar from './AiAvatar.vue';
 
 const COLLAPSE_LINES = 18;
@@ -14,6 +17,10 @@ const EXAMPLE_PROMPTS = [
 const props = defineProps<{
   messages: ChatMessage[];
   hasWorkspace: boolean;
+  pendingReviewMessageId: string | null;
+  latestAppliedMessageId: string | null;
+  codeEditApplying: boolean;
+  codeEditUndoing: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -21,10 +28,9 @@ const emit = defineEmits<{
   applyBlock: [block: string, msgId: string];
   dismissBlock: [msgId: string];
   previewBlock: [block: string, msgId: string];
-  previewChangedFile: [change: CodeChange, msgId: string];
-  applyChangedFile: [change: CodeChange, msgId: string];
-  applyAllChangedFiles: [changes: CodeChange[], msgId: string];
-  dismissChangedFiles: [msgId: string];
+  applyPendingChange: [msgId: string];
+  dismissPendingChange: [msgId: string];
+  undoLatestChange: [msgId: string];
   confirmStep: [];
   regenerateStep: [];
 }>();
@@ -35,6 +41,8 @@ const md = new MarkdownIt({ html: false, linkify: true, breaks: true });
 
 // Collapsible state per message
 const expandedMessages = ref<Set<string>>(new Set());
+const expandedChangeSets = ref<Set<string>>(new Set());
+const sideBySidePaths = ref<Set<string>>(new Set());
 
 function toggleExpand(msgId: string) {
   const next = new Set(expandedMessages.value);
@@ -58,10 +66,62 @@ function renderMarkdown(content: string): string {
   return md.render(content || '▋');
 }
 
+function setChangeSetExpanded(msgId: string, expanded: boolean) {
+  const next = expanded ? new Set([msgId]) : new Set(expandedChangeSets.value);
+  if (!expanded) next.delete(msgId);
+  expandedChangeSets.value = next;
+}
+
+function closeChangeSetOnEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape' && expandedChangeSets.value.size > 0) {
+    expandedChangeSets.value = new Set();
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', closeChangeSetOnEscape));
+onBeforeUnmount(() => window.removeEventListener('keydown', closeChangeSetOnEscape));
+
+function setSideBySide(path: string, enabled: boolean) {
+  const next = new Set(sideBySidePaths.value);
+  if (enabled) next.add(path);
+  else next.delete(path);
+  sideBySidePaths.value = next;
+}
+
+function applyPendingChange(msgId: string) {
+  emit('applyPendingChange', msgId);
+}
+
+function dismissPendingChange(msgId: string) {
+  emit('dismissPendingChange', msgId);
+  setChangeSetExpanded(msgId, false);
+}
+
+function originalContent(msg: ChatMessage, change: CodeEditChangedFile) {
+  return msg.codeEditOriginalContents?.[change.path] ?? '';
+}
+
+function modifiedContent(change: CodeEditChangedFile) {
+  return change.status === 'deleted' ? '' : change.content;
+}
+
+function language(change: CodeEditChangedFile) {
+  if (change.type === 'aimd') return 'markdown';
+  if (change.type === 'py') return 'python';
+  if (change.type === 'toml') return 'toml';
+  return 'plaintext';
+}
+
 watch(() => props.messages, () => {
   nextTick(() => {
     bottomRef.value?.scrollIntoView({ behavior: 'smooth' });
   });
+});
+
+watch(() => props.pendingReviewMessageId, (next, previous) => {
+  if (previous && next !== previous && expandedChangeSets.value.has(previous)) {
+    setChangeSetExpanded(previous, false);
+  }
 });
 </script>
 
@@ -157,40 +217,97 @@ watch(() => props.messages, () => {
           </div>
         </div>
 
-        <div v-if="msg.role === 'assistant' && !msg.streaming && msg.changedFiles && msg.changedFiles.length > 0" class="chat-action-card">
-          <p class="chat-action-card__text">OpenCode prepared workspace edits. Review them file by file or apply everything at once.</p>
-          <div class="chat-action-card__actions chat-action-card__actions--wrap">
-            <span v-for="change in msg.changedFiles" :key="change.path" class="chat-action-card__inline-actions">
-              <span class="chat-action-card__file-label">{{ change.name }} · {{ change.status }}</span>
-              <button
-                v-if="change.status !== 'deleted'"
-                class="chat-action-card__button chat-action-card__button--preview"
-                @click="emit('previewChangedFile', change, msg.id)"
-              >Preview</button>
-              <button
-                class="chat-action-card__button chat-action-card__button--primary"
-                @click="emit('applyChangedFile', change, msg.id)"
-              >{{ change.status === 'deleted' ? 'Delete' : 'Apply' }}</button>
-            </span>
+        <div
+          v-if="msg.role === 'assistant' && !msg.streaming && msg.codeEditResult?.changed_files.length"
+          class="chat-change-set"
+        >
+          <MasterbrainChangeStatus
+            v-if="msg.codeEditAction === 'applied' && props.latestAppliedMessageId === msg.id && !expandedChangeSets.has(msg.id)"
+            :applied="{
+              id: msg.codeEditResult.change_set_id,
+              response: msg.codeEditResult,
+              files: [],
+            }"
+            :undoing="props.codeEditUndoing"
+            @view="setChangeSetExpanded(msg.id, true)"
+            @undo="emit('undoLatestChange', msg.id)"
+          />
+
+          <div
+            v-else-if="msg.codeEditAction === 'undone' && !expandedChangeSets.has(msg.id)"
+            class="chat-change-set__undone"
+            role="status"
+          >
+            <span>AI changes undone</span>
             <button
-              class="chat-action-card__button chat-action-card__button--primary"
-              @click="emit('applyAllChangedFiles', msg.changedFiles, msg.id)"
-            >Apply all</button>
-            <button
-              class="chat-action-card__button chat-action-card__button--ghost"
-              @click="emit('dismissChangedFiles', msg.id)"
-            >Dismiss</button>
+              type="button"
+              class="chat-action-card__button chat-action-card__button--preview"
+              @click="setChangeSetExpanded(msg.id, true)"
+            >View changes</button>
           </div>
-          <details v-if="msg.executionLog && msg.executionLog.length > 0" class="chat-action-card__details">
-            <summary>Execution details</summary>
-            <ul class="chat-action-card__log">
-              <li v-for="(line, index) in msg.executionLog" :key="`${msg.id}-change-log-${index}`">{{ line }}</li>
-            </ul>
-          </details>
+
+          <button
+            v-else-if="!expandedChangeSets.has(msg.id)"
+            type="button"
+            class="chat-action-card__button chat-action-card__button--preview"
+            @click="setChangeSetExpanded(msg.id, true)"
+          >
+            {{ msg.codeEditAction === 'review' ? 'Review proposed changes' : 'View changes' }}
+          </button>
+
+          <Teleport to="body">
+            <div
+              v-if="expandedChangeSets.has(msg.id)"
+              class="chat-change-set__overlay"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Review AI changes"
+              @click.self="setChangeSetExpanded(msg.id, false)"
+            >
+              <div class="chat-change-set__dialog">
+                <MasterbrainChangeReview
+                  :result="msg.codeEditResult"
+                  :applying="props.codeEditApplying"
+                  :show-apply="msg.codeEditAction === 'review' && props.pendingReviewMessageId === msg.id"
+                  @close="setChangeSetExpanded(msg.id, false)"
+                  @apply="applyPendingChange(msg.id)"
+                >
+                  <template #diff="{ change }">
+                    <div class="chat-change-set__diff-toolbar">
+                      <button
+                        type="button"
+                        :class="['chat-change-set__mode', !sideBySidePaths.has(change.path) && 'chat-change-set__mode--active']"
+                        @click="setSideBySide(change.path, false)"
+                      >Inline</button>
+                      <button
+                        type="button"
+                        :class="['chat-change-set__mode', sideBySidePaths.has(change.path) && 'chat-change-set__mode--active']"
+                        @click="setSideBySide(change.path, true)"
+                      >Side by side</button>
+                    </div>
+                    <MasterbrainMonacoDiff
+                      :original="originalContent(msg, change)"
+                      :modified="modifiedContent(change)"
+                      :language="language(change)"
+                      :side-by-side="sideBySidePaths.has(change.path)"
+                      height="clamp(16rem, 40vh, 30rem)"
+                    />
+                  </template>
+                </MasterbrainChangeReview>
+
+                <button
+                  v-if="msg.codeEditAction === 'review' && props.pendingReviewMessageId === msg.id"
+                  type="button"
+                  class="chat-action-card__button chat-action-card__button--ghost chat-change-set__dismiss"
+                  @click="dismissPendingChange(msg.id)"
+                >Dismiss proposal</button>
+              </div>
+            </div>
+          </Teleport>
         </div>
 
         <div
-          v-if="msg.role === 'assistant' && !msg.streaming && msg.editStatus === 'no_changes'"
+          v-if="msg.role === 'assistant' && !msg.streaming && msg.codeEditAction === 'answer' && msg.executionLog?.length"
           class="chat-action-card"
         >
           <p class="chat-action-card__text">OpenCode completed, but it did not modify any supported workspace files this time.</p>
@@ -458,6 +575,75 @@ watch(() => props.messages, () => {
   color: var(--text-secondary);
 }
 
+.chat-change-set {
+  display: grid;
+  width: 100%;
+  gap: 10px;
+}
+
+.chat-change-set__overlay {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 4vw, 48px);
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.chat-change-set__dialog {
+  width: min(1100px, 100%);
+  max-height: calc(100vh - clamp(32px, 8vw, 96px));
+  overflow: auto;
+  padding: clamp(18px, 3vw, 32px);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  background: var(--panel-solid);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+}
+
+.chat-change-set__undone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--panel-subtle);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chat-change-set__diff-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.chat-change-set__mode {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+  padding: 5px 8px;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.chat-change-set__mode--active {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.chat-change-set__dismiss {
+  margin-top: 12px;
+}
+
 @media (max-width: 640px) {
   .chat-thread {
     padding: 14px;
@@ -469,6 +655,16 @@ watch(() => props.messages, () => {
 
   .chat-action-card__actions {
     flex-direction: column;
+  }
+
+  .chat-change-set__overlay {
+    padding: 10px;
+  }
+
+  .chat-change-set__dialog {
+    max-height: calc(100vh - 20px);
+    padding: 16px;
+    border-radius: 18px;
   }
 }
 </style>

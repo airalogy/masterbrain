@@ -1,0 +1,53 @@
+name: Release npm packages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: masterbrain-npm-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: ".python-version"
+
+      - uses: astral-sh/setup-uv@v7
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync contract environment
+        working-directory: packages/masterbrain
+        run: UV_CACHE_DIR=.uv-cache uv sync --locked --dev
+
+      - name: Version or publish packages
+        uses: changesets/action@v1
+        with:
+          version: npm run version:packages
+          publish: npm run release:packages
+          commit: "chore(release): version npm packages"
+          title: "chore(release): version npm packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true

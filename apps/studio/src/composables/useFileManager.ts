@@ -1,9 +1,11 @@
 import { computed, ref, shallowRef } from 'vue';
+import { sha256Hex, type WorkspaceAdapter, type WorkspaceMutation } from '@airalogy/masterbrain-client';
 import type { FileEntry, WorkspaceState } from '../types/index.ts';
 
 function detectType(filename: string): FileEntry['type'] {
   if (filename.endsWith('.aimd')) return 'aimd';
   if (filename.endsWith('.py')) return 'py';
+  if (filename.endsWith('.toml')) return 'toml';
   return 'other';
 }
 
@@ -62,6 +64,37 @@ export function useFileManager() {
   const workspaceError = ref<string | null>(null);
 
   const hasWorkspace = computed(() => workspaceRoot.value !== null);
+
+  const workspaceAdapter: WorkspaceAdapter = {
+    readFile(path) {
+      const file = files.value.find(entry => entry.path === path);
+      return file ? { path: file.path, content: file.content, type: file.type } : null;
+    },
+    async applyMutations(mutations, context) {
+      if (!hasWorkspace.value) {
+        throw new Error('Choose a workspace directory before applying AI changes.');
+      }
+      const normalizedMutations = await Promise.all(mutations.map(async (mutation): Promise<WorkspaceMutation> => {
+        if (mutation.expected_hash !== undefined) return mutation;
+        const current = files.value.find(entry => entry.path === mutation.path);
+        return {
+          ...mutation,
+          expected_hash: current ? await sha256Hex(current.content) : null,
+        };
+      }));
+      const state = await requestWorkspace<WorkspaceState>('/api/endpoints/workspace/mutations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          change_set_id: context.changeSetId,
+          operation: context.operation,
+          mutations: normalizedMutations,
+        }),
+      });
+      applyWorkspaceState(state);
+      workspaceError.value = null;
+    },
+  };
 
   function applyWorkspaceState(state: WorkspaceState) {
     const previousActivePath = activeFile.value?.path;
@@ -343,6 +376,7 @@ export function useFileManager() {
     isLoadingWorkspace,
     workspaceError,
     hasWorkspace,
+    workspaceAdapter,
     uploadZip,
     downloadZip,
     updateFileContent,

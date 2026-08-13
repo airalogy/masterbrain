@@ -5,10 +5,12 @@ Masterbrain 采用轻量 monorepo 结构：
 ```txt
 masterbrain/
 ├── packages/
-│   └── masterbrain/
-│       ├── pyproject.toml
-│       ├── src/masterbrain/
-│       └── tests/
+│   ├── masterbrain/
+│   │   ├── pyproject.toml
+│   │   ├── src/masterbrain/
+│   │   └── tests/
+│   ├── client/       # 框架无关 npm 包
+│   └── vue/          # Vue 包与可选 Monaco Diff
 ├── apps/
 │   └── studio/
 │       ├── src/
@@ -28,7 +30,13 @@ Python 包现在围绕稳定的 core/provider/API 边界组织：
 - `endpoints/`：FastAPI endpoint 契约和应用层编排
 - `fastapi/`：可部署 HTTP 应用的装配层
 
-下游应用应依赖这个 Python 包或它暴露的 HTTP API，不依赖 Masterbrain Studio 前端。
+下游应用通过 Python 包或 HTTP API 集成后端，通过 `@airalogy/masterbrain-client` 获得归一化 Web 契约，并可选使用 `@airalogy/masterbrain-vue` 的宿主无关状态与 UI。Studio 只是参考宿主，下游不应直接依赖 Studio。
+
+## 前端能力边界
+
+client 包负责传输注入、响应归一化、风险建议、基于哈希的冲突检查、原子 mutation 契约和撤销语义。Vue 包负责 composable 状态和可复用的变更审核/状态视图；其 `./monaco` 子路径提供可选 Monaco Diff 组件。
+
+宿主产品保留认证、计费、审计、路由、国际化、弹窗/布局壳和产品特定 workspace adapter。浏览器客户端永远不接收模型供应商密钥。
 
 ## Endpoint 优先的组织方式
 
