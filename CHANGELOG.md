@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+## v0.10.1
+
+### Fixed
+
+- Made the OpenCode code-edit runtime bypass process-level HTTP proxy settings for its loopback health and message requests, with configurable startup timeout and actionable startup log tails.
+- Kept generated Protocol text in the user's requested language and prevented generation or conversational editing from using invalid validation-only assigners with empty assigned fields.
+
 ## v0.10.0
 
 ### Added
