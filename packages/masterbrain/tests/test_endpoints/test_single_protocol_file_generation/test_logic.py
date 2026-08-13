@@ -6,6 +6,9 @@ import pytest
 
 from masterbrain.configs import DEBUG
 from masterbrain.endpoints.single_protocol_file_generation.logic import generate_stream
+from masterbrain.endpoints.single_protocol_file_generation.logic.prompts import (
+    SYSTEM_MESSAGE_PROMPT,
+)
 from masterbrain.endpoints.single_protocol_file_generation.types import (
     ProtocolMessage,
     SupportedModels,
@@ -13,6 +16,13 @@ from masterbrain.endpoints.single_protocol_file_generation.types import (
 
 # 获取支持的模型名称
 PROTOCOL_V3_MODEL_NAMES = ["qwen3.5-flash", "qwen3.5-plus", "qwen3-max", "gpt-4o-mini"]
+
+
+def test_generation_prompt_preserves_user_language():
+    assert "same language as the user's request" in SYSTEM_MESSAGE_PROMPT
+    assert "For a Chinese request" in SYSTEM_MESSAGE_PROMPT
+    assert "assigner to validate user input" in SYSTEM_MESSAGE_PROMPT
+    assert "non-empty `assigned_fields`" in SYSTEM_MESSAGE_PROMPT
 
 
 @pytest.mark.asyncio

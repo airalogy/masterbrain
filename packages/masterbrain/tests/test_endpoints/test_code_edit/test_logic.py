@@ -5,8 +5,11 @@ from pathlib import Path
 import pytest
 
 from masterbrain.endpoints.code_edit.logic import (
+    SYSTEM_PROMPT,
     OpenCodeRunResult,
+    ProcessLogBuffer,
     _record_opencode_usage,
+    _wait_for_server,
     _workspace_namespace,
     _sync_workspace,
     build_code_edit_prompt,
@@ -21,6 +24,11 @@ from masterbrain.endpoints.code_edit.types import (
     WorkspaceFile,
 )
 from masterbrain.usage import InMemoryUsageSink, bind_usage_sinks
+
+
+def test_system_prompt_forbids_validation_only_assigners():
+    assert "Every assigner must declare at least one assigned field" in SYSTEM_PROMPT
+    assert "Never create a validation-only assigner" in SYSTEM_PROMPT
 
 
 class FakeRuntime:
@@ -55,6 +63,43 @@ class FakeNoChangeRuntime:
             message="Reviewed the file and no change was necessary.",
             execution_log=["OpenCode returned an answer without file edits."],
         )
+
+
+@pytest.mark.asyncio
+async def test_wait_for_local_server_ignores_environment_proxy(monkeypatch):
+    client_options: dict[str, object] = {}
+
+    class SuccessfulResponse:
+        is_success = True
+
+    class LocalClient:
+        def __init__(self, **options: object) -> None:
+            client_options.update(options)
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_: object) -> None:
+            return None
+
+        async def get(self, _: str):
+            return SuccessfulResponse()
+
+    monkeypatch.setattr(
+        "masterbrain.endpoints.code_edit.logic.httpx.AsyncClient",
+        LocalClient,
+    )
+
+    class RunningProcess:
+        returncode = None
+
+    await _wait_for_server(
+        41234,
+        RunningProcess(),  # type: ignore[arg-type]
+        ProcessLogBuffer(),
+    )
+
+    assert client_options["trust_env"] is False
 
 
 def test_build_code_edit_prompt_contains_editor_context():

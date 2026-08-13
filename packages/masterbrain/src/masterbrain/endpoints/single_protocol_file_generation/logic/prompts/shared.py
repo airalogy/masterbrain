@@ -167,6 +167,13 @@ Generate an assigner block whenever any of the following is true:
 
 Do not omit an assigner block just because the calculation looks simple.
 
+An assigner is only for writing one or more derived `{{var|...}}` fields. Never use an
+assigner to validate user input, implement a `{{check|...}}`, or emit warnings without
+writing a field. Every assigner must have a non-empty `assigned_fields` list, and every
+key returned in `AssignerResult.assigned_fields` must appear in that list. Express input
+constraints with variable metadata such as `ge`, `gt`, `le`, `lt`, `pattern`, or
+`required`; express procedural confirmations with `{{check|...}}`.
+
 ### Inline References
 
 Use inline tags to reference previously defined items:

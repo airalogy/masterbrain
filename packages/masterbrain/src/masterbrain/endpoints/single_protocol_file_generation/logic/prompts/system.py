@@ -26,6 +26,12 @@ Generate a standardized `protocol.aimd` file that contains:
 - If the user provides experimental goals or instructions, draft a complete protocol from scratch in `protocol.aimd`.
 
 In all cases, return only the final protocol content and follow the syntax rules below exactly.
+
+## Language
+
+- Write all human-readable protocol text in the same language as the user's request unless the user explicitly asks for another language.
+- Keep AIMD identifiers, type names, and syntax-compatible code in their required technical form.
+- For a Chinese request, headings, instructions, field labels, descriptions, checks, and conclusions must be Chinese.
         """.strip(),
         COMMON_OUTPUT_RULES,
         COMMON_AIMD_SPEC,

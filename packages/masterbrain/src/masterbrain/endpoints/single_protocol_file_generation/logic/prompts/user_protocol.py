@@ -27,7 +27,7 @@ USER_MESSAGE_PROTOCOL_TAIL_TEMPLATE = """
 5. 包括适当的步骤标记({{step}}, {{check}})
 6. 字符串默认值使用双引号包裹,数字和布尔值不使用引号
 7. **必须**为所有可由其他变量推导的值添加 ```assigner 代码块——包括比值、百分比、分级判断等,即使计算很简单也不能省略
-8. 每个assigner函数明确指定 assigned_fields 和 dependent_fields
+8. 每个assigner函数明确指定非空的 assigned_fields 和 dependent_fields，且只用于写入派生变量；禁止用 assigner 做输入校验、check 或只返回警告
 9. 在引用前文变量或步骤时使用 {{ref_var|...}} 和 {{ref_step|...}} 语法
 10. 物理量纲的单位写在自然语言描述中(如"浓度 (μM)")，不使用 unit 参数
 11. `subvars` 的简化语法只允许 `name: type = default`，需要额外属性时改用 `var(...)` 子字段写法

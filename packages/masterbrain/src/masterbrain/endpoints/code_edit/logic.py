@@ -52,6 +52,7 @@ Rules:
 - Keep protocol.aimd valid AIMD. Variables should be declared with `{{var|name: Type}}` when a type is known.
 - Keep assigner logic compatible with Airalogy assigner syntax. In AIMD, assigner blocks are fenced with ```assigner ... ```. In standalone assigner.py, write the assigner code only, without Markdown fences.
 - Use the current module-level, function-based assigner syntax: `from airalogy.assigner import AssignerResult, assigner`, decorate plain functions with `@assigner(assigned_fields=[...], dependent_fields=[...], mode="auto")`, take a single `dependent_fields: dict` argument, and return `AssignerResult(assigned_fields={...})`. Do not use the deprecated `AssignerBase`, `class Assigner`, `@staticmethod`, or a `dependent_data` parameter. For Variable Table fields, reference them as `"table_name.subvar_name"`.
+- Use assigners only to write derived fields. Every assigner must declare at least one assigned field, and every returned key must appear in `assigned_fields`. Never create a validation-only assigner, an assigner for `{{check|...}}`, or an assigner that only emits warnings. Use AIMD field constraints for input validation and `{{check|...}}` for procedural confirmations.
 - Keep model.py valid Python and aligned with fields referenced by protocol.aimd and assigner.py.
 - Keep protocol.toml valid TOML.
 - Do not create or edit hidden files, runtime metadata, or config files unrelated to the request.
@@ -75,6 +76,9 @@ CODE_EDIT_MAX_MANAGED_RUNTIMES = int(
 )
 CODE_EDIT_MAX_MANAGED_RUNTIMES_PER_NAMESPACE = int(
     os.getenv("MASTERBRAIN_CODE_EDIT_MAX_MANAGED_RUNTIMES_PER_NAMESPACE", "2")
+)
+OPENCODE_STARTUP_TIMEOUT_SECONDS = float(
+    os.getenv("MASTERBRAIN_OPENCODE_STARTUP_TIMEOUT_SECONDS", "30")
 )
 
 logger = logging.getLogger(__name__)
@@ -525,8 +529,11 @@ async def _wait_for_server(
     process_logs: ProcessLogBuffer,
 ) -> None:
     base_url = f"http://127.0.0.1:{port}"
-    timeout_at = asyncio.get_running_loop().time() + 20
-    async with httpx.AsyncClient(timeout=httpx.Timeout(2.0, connect=2.0)) as client:
+    timeout_at = asyncio.get_running_loop().time() + OPENCODE_STARTUP_TIMEOUT_SECONDS
+    async with httpx.AsyncClient(
+        timeout=httpx.Timeout(2.0, connect=2.0),
+        trust_env=False,
+    ) as client:
         while True:
             if process.returncode is not None:
                 stderr_tail = _format_process_tail("stderr", process_logs.stderr_tail)
@@ -546,7 +553,14 @@ async def _wait_for_server(
                 pass
 
             if asyncio.get_running_loop().time() >= timeout_at:
-                raise RuntimeError("Timed out while waiting for opencode server startup.")
+                stderr_tail = _format_process_tail("stderr", process_logs.stderr_tail)
+                stdout_tail = _format_process_tail("stdout", process_logs.stdout_tail)
+                extra_parts = [part for part in (stderr_tail, stdout_tail) if part]
+                extra = f"\n\n{'\n\n'.join(extra_parts)}" if extra_parts else ""
+                raise RuntimeError(
+                    "Timed out while waiting for opencode server startup."
+                    f"{extra}"
+                )
 
             await asyncio.sleep(0.25)
 
@@ -583,6 +597,9 @@ async def _start_opencode_server(
         "127.0.0.1",
         "--port",
         str(port),
+        "--print-logs",
+        "--log-level",
+        "INFO",
         cwd=str(workspace_dir),
         env=env,
         stdout=asyncio.subprocess.PIPE,
@@ -660,7 +677,13 @@ async def _run_opencode_message(
     execution_log: list[str],
 ) -> OpenCodeRunResult:
     timeout = httpx.Timeout(300.0, connect=10.0, read=300.0, write=60.0)
-    async with httpx.AsyncClient(base_url=base_url, timeout=timeout) as client:
+    # The OpenCode server always runs on loopback. Ignore HTTP(S)_PROXY here so
+    # corporate proxy settings cannot intercept or break local runtime traffic.
+    async with httpx.AsyncClient(
+        base_url=base_url,
+        timeout=timeout,
+        trust_env=False,
+    ) as client:
         session_response = await client.post(
             "/session",
             json={"title": "Masterbrain Code Edit"},
