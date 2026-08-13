@@ -61,11 +61,11 @@ npm run studio:build
 
 ## PyPI 配置
 
-要让自动发布成功，需要在 PyPI 项目中将 `YANG-Zijie/masterbrain` 的 `.github/workflows/release.yml` 配置为受信任发布者。
+要让自动发布成功，需要在 PyPI 项目中将 `airalogy/masterbrain` 的 `.github/workflows/release.yml` 配置为受信任发布者。
 
 这项配置通常只需要做一次：
 
-- Owner：`YANG-Zijie`
+- Owner：`airalogy`
 - Repository：`masterbrain`
 - Workflow：`.github/workflows/release.yml`
 - Environment：`pypi`

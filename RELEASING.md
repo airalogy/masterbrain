@@ -61,11 +61,11 @@ npm run studio:build
 
 ## PyPI Setup
 
-PyPI must trust `YANG-Zijie/masterbrain` with workflow file `.github/workflows/release.yml` for publishing to succeed.
+PyPI must trust `airalogy/masterbrain` with workflow file `.github/workflows/release.yml` for publishing to succeed.
 
 Configure this once in the PyPI project settings:
 
-- Owner: `YANG-Zijie`
+- Owner: `airalogy`
 - Repository: `masterbrain`
 - Workflow: `.github/workflows/release.yml`
 - Environment: `pypi`

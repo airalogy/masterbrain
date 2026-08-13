@@ -4,11 +4,11 @@
   "description": "Framework-neutral client and workspace change contract for Masterbrain",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YANG-Zijie/masterbrain.git",
+    "url": "git+https://github.com/airalogy/masterbrain.git",
     "directory": "packages/client"
   },
-  "homepage": "https://github.com/YANG-Zijie/masterbrain#readme",
-  "bugs": "https://github.com/YANG-Zijie/masterbrain/issues",
+  "homepage": "https://github.com/airalogy/masterbrain#readme",
+  "bugs": "https://github.com/airalogy/masterbrain/issues",
   "type": "module",
   "license": "Apache-2.0",
   "sideEffects": false,
