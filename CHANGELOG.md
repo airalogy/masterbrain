@@ -4,6 +4,18 @@
 
 ## Unreleased
 
+## v0.11.0
+
+### Added
+
+- Added a versioned code-edit response contract with stable change-set IDs, per-file SHA-256 hashes, explicit answer/change outcomes, and risk recommendations for embedding applications.
+- Added atomic workspace mutations with optimistic conflict checks and rollback, allowing hosts to apply or undo an AI change set without leaving partial file updates.
+
+### Changed
+
+- Code-edit responses now distinguish conversational answers from file changes and classify safe, warning, and destructive operations so hosts can auto-apply safe edits while reviewing risky ones.
+- Masterbrain Studio now uses the shared client and Vue capability packages for automatic application, review, full-size Monaco Diff, and conflict-safe undo.
+
 ## v0.10.1
 
 ### Fixed
