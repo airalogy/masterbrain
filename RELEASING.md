@@ -47,7 +47,11 @@ uv version --bump major
 
 Feature and fix changes to `@airalogy/masterbrain-client` or `@airalogy/masterbrain-vue` must include a file under `.changeset/`. Do not edit their versions or generated package changelogs by hand.
 
-After a change reaches `main`, `.github/workflows/release-npm.yml` opens or updates the version PR. Merging that PR publishes the changed packages to npm with GitHub Actions provenance. Configure the repository secret `NPM_TOKEN` with permission to publish the `@airalogy` scope.
+After a change reaches `main`, `.github/workflows/release-npm.yml` opens or updates the version PR. Merging that PR publishes the changed packages to npm with GitHub Actions provenance.
+
+Both public packages use npm Trusted Publishing instead of a long-lived write token. Their npm settings must trust GitHub Actions from organization `airalogy`, repository `masterbrain`, and workflow `release-npm.yml`, with `npm publish` allowed. Keep the optional environment name empty unless the workflow is also updated to use that GitHub environment. After the trust relationship is verified, select npm's restrictive publishing-access option that requires two-factor authentication and disallows bypass-2FA tokens.
+
+The GitHub repository must allow Actions to create pull requests while its default workflow permission can remain read-only. The workflow grants only the explicit `contents`, `pull-requests`, and `id-token` permissions it needs.
 
 The version command also synchronizes the root npm lockfile after Changesets updates package versions, so the generated release PR remains compatible with `npm ci`.
 
@@ -77,3 +81,4 @@ Configure this once in the PyPI project settings:
 - `CHANGELOG.md` is the default English changelog; `CHANGELOG.zh-CN.md` is the Chinese version and should be kept in sync.
 - The PyPI workflow publishes only the Python package under `packages/masterbrain`.
 - The npm workflow publishes only `packages/client` and `packages/vue`; Studio remains private and is never published.
+- Do not restore `NPM_TOKEN` or `NODE_AUTH_TOKEN` for publishing. OIDC provides a short-lived credential bound to the trusted repository and workflow.

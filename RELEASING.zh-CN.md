@@ -47,7 +47,11 @@ uv version --bump major
 
 修改 `@airalogy/masterbrain-client` 或 `@airalogy/masterbrain-vue` 的功能和修复必须带一份 `.changeset/` 文件，不要手动改版本号或生成的 package changelog。
 
-改动进入 `main` 后，`.github/workflows/release-npm.yml` 会创建或更新版本 PR；合并该 PR 后发布带 GitHub Actions provenance 的 npm 包。仓库需配置能发布 `@airalogy` scope 的 `NPM_TOKEN` secret。
+改动进入 `main` 后，`.github/workflows/release-npm.yml` 会创建或更新版本 PR；合并该 PR 后发布带 GitHub Actions provenance 的 npm 包。
+
+两个公共包使用 npm Trusted Publishing，不保存长期写入 token。npm 包设置必须信任来自 GitHub Actions 的发布：Organization 为 `airalogy`，Repository 为 `masterbrain`，Workflow filename 为 `release-npm.yml`，并允许 `npm publish`。除非 workflow 同时接入对应 GitHub environment，否则 Environment name 保持为空。确认信任关系生效后，应选择 npm 中“要求双因素认证且禁止 bypass-2FA token”的严格发布权限。
+
+GitHub 仓库需要允许 Actions 创建 PR；默认 workflow 权限仍可保持只读，发布 workflow 只显式申请所需的 `contents`、`pull-requests` 与 `id-token` 权限。
 
 版本命令会在 Changesets 更新包版本后同步根目录 npm 锁文件，确保自动生成的版本 PR 仍能通过 `npm ci`。
 
@@ -77,3 +81,4 @@ npm run studio:build
 - `CHANGELOG.md` 是默认英文版；`CHANGELOG.zh-CN.md` 是中文版，两者需要同步维护。
 - PyPI workflow 只发布 `packages/masterbrain` 下的 Python 包。
 - npm workflow 只发布 `packages/client` 和 `packages/vue`；Studio 保持 private，不会发布。
+- 不要重新加入用于发布的 `NPM_TOKEN` 或 `NODE_AUTH_TOKEN`；OIDC 会按受信任仓库和 workflow 生成短时凭据。
