@@ -17,6 +17,7 @@ from masterbrain.providers import (
     build_litellm_openai_compatible_client,
     detect_model_provider,
 )
+from masterbrain.providers.registry import EmbeddingModel
 
 API_ROOT = Path(__file__).resolve().parents[2]
 ENV_FILE = API_ROOT / ".env"
@@ -61,13 +62,13 @@ DASHSCOPE_CLIENT: LiteLLMOpenAICompatibleClient = build_litellm_openai_compatibl
 )
 
 
-def select_client(model: AvailableModel) -> LiteLLMOpenAICompatibleClient:
+def select_client(model: AvailableModel | EmbeddingModel) -> LiteLLMOpenAICompatibleClient:
     """
     Select the client based on the model.
 
     Parameters
     ----------
-    model : AvailableModel
+    model : AvailableModel | EmbeddingModel
         The model to use.
 
     Returns

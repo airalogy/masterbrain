@@ -10,6 +10,13 @@ from typing import Literal, get_args
 
 ProviderName = Literal["openai", "qwen"]
 
+EmbeddingModel = Literal[
+    "text-embedding-v4",
+    "text-embedding-3-small",
+    "text-embedding-3-large",
+    "text-embedding-ada-002",
+]
+
 AvailableOpenAIModel = Literal[
     "gpt-3.5-turbo",
     "gpt-4o-mini",
@@ -56,6 +63,10 @@ DEFAULT_PROVIDER_BASE_URL: dict[ProviderName, str] = {
 def detect_model_provider(model_name: str) -> ProviderName:
     """Infer the upstream provider for a supported model name."""
 
+    if model_name == "text-embedding-v4":
+        return "qwen"
+    if model_name in get_args(EmbeddingModel):
+        return "openai"
     if model_name in get_args(AvailableOpenAIModel) or model_name.startswith(("gpt-", "o1-")):
         return "openai"
     if model_name in get_args(AvailableQwenModel) or model_name.startswith(

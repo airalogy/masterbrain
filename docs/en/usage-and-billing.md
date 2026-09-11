@@ -13,6 +13,11 @@ persist these immutable events and apply its own versioned pricing rules.
 - Platform owns customer identity, pricing versions, credits, invoices,
   currencies, taxes, refunds, and billing reconciliation.
 
+Reusable model calls and scientific reasoning belong to Masterbrain. Host-specific
+context selection, permissions, approvals, durable task state, scientific assets,
+and tool/device execution remain with Platform and its execution workers. Hosting
+Masterbrain in-process does not require sending data to a central Airalogy service.
+
 Do not calculate a customer's charge directly from `provider_cost`. That field,
 its explicit `provider_cost_currency`, and `provider_cost_source` are useful for
 upstream cost analysis and reconciliation, but provider price maps and exchange
@@ -130,6 +135,7 @@ Masterbrain captures:
 
 - LiteLLM chat completions, including final streaming usage chunks
 - LiteLLM audio transcription responses
+- OpenAI-compatible SDK text embeddings (`call_type="embedding"`)
 - LangChain calls used by paper generation
 - direct DashScope speech-to-text calls
 - every OpenCode assistant/provider call in a code-edit run
@@ -140,3 +146,47 @@ carry the currency reported by that provider, such as `CNY` for a RMB charge.
 No exchange-rate conversion happens in Masterbrain.
 The stream must be consumed to completion, or explicitly closed with `aclose()`,
 for its final usage or cancellation event to be emitted.
+
+## Text embeddings (since 0.12.0)
+
+Version 0.12.0 adds a reusable async API and `POST /api/endpoints/embeddings`.
+Downstream products should depend on the published package; do not commit
+sibling-path dependencies or patched wheels.
+
+```python
+from masterbrain.embeddings import EmbeddingRequest, create_embeddings
+from masterbrain.usage import UsageContext, bind_usage_context
+
+with bind_usage_context(UsageContext(feature="protocol.index")):
+    result = await create_embeddings(EmbeddingRequest(
+        model="text-embedding-v4",
+        input=["A bounded, authorized excerpt"],
+        dimensions=1024,
+    ))
+# result.model, result.dimensions, result.vectors (in input order)
+```
+
+The HTTP request uses the same `model`, `input`, and optional `dimensions` fields.
+Supported models are `text-embedding-v4`, `text-embedding-3-small`,
+`text-embedding-3-large`, and `text-embedding-ada-002` (omit dimensions for ada).
+Each batch accepts one to six non-blank strings, at most 32,768 characters each;
+provider token limits still apply. Text is neither truncated nor silently split.
+Larger jobs should batch explicitly so hosts can enforce budgets and cancellation.
+
+Credentials and base URLs come from the existing server provider configuration,
+never the HTTP payload. The API returns vectors only after validating their count,
+indexes, dimensions, and finite numeric values. It performs no model fallback or
+automatic retry; upstream failure and cancellation retain their usage events.
+No source text or vectors are stored in the metering event.
+
+The host must enforce authentication, authorized context, AI policy, and budgets
+before calling; do not expose an unprotected Masterbrain service publicly. For
+external deployment, configure a trusted usage sink on that service rather than
+trusting tenant headers from callers. When AI is off or unavailable, hosts should
+keep local keyword indexing/search working without calling embeddings.
+
+For Platform's existing indexes, retain `text-embedding-v4` and 1024 dimensions.
+Changing providers or models can change the vector space even at the same
+dimension: reindex explicitly, never mix new query vectors with an incompatible
+existing index. Authorization, index storage, and reindex scheduling remain host
+responsibilities.

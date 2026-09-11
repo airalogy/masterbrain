@@ -33,6 +33,7 @@ jobs:
           UV_CACHE_DIR=.uv-cache uv run --no-sync python -m pytest \
             tests/test_packaging/test_desktop_packaging.py \
             tests/test_providers/test_litellm.py \
+            tests/test_providers/test_embeddings.py \
             tests/test_utils/test_llm.py \
             tests/test_endpoints/test_chat/test_field_input/test_types.py \
             tests/test_endpoints/test_chat/test_field_input/test_slot_service.py \

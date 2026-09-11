@@ -4,6 +4,18 @@
 
 ## Unreleased
 
+## v0.12.0
+
+### Added
+
+- Added the reusable asynchronous `masterbrain.embeddings` API and `POST /api/endpoints/embeddings` for bounded text embedding batches using configured Qwen or OpenAI providers.
+- Unified embedding usage events with existing host metering, including request correlation, upstream failures and cancellation, without storing source text or vectors in usage events.
+- Added request and vector validation, explicit dimension preservation, and offline HTTP-level regression tests that verify one upstream attempt per embedding call with no implicit model fallback.
+
+### Integration
+
+- Documented the boundary between reusable Masterbrain intelligence and host authorization, budgets, assets, indexes, and execution. Platform's existing `text-embedding-v4` indexes can retain their 1024-dimensional vector space.
+
 ## v0.11.0
 
 ### Added

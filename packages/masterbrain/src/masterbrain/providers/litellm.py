@@ -3,7 +3,8 @@
 Masterbrain keeps LiteLLM behind this module so endpoint and workflow code can
 avoid depending on LiteLLM's public API directly. The facade intentionally
 preserves the small OpenAI-compatible surface used by existing endpoints:
-`client.chat.completions.create(...)` and `client.audio.transcriptions.create(...)`.
+`client.chat.completions.create(...)`, `client.audio.transcriptions.create(...)`,
+and `client.embeddings.create(...)`.
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from typing import Any, Literal
 
 from masterbrain.core.usage import UsageCallTracker, to_usage_mapping
 
+from .openai import OpenAICompatibleEmbeddings
 from .registry import DEFAULT_PROVIDER_BASE_URL, ProviderName
 
 OpenAICompatibleProvider = Literal["openai", "qwen"]
@@ -280,6 +282,11 @@ class LiteLLMOpenAICompatibleClient:
         self.provider = config.provider
         self.chat = LiteLLMChat(config)
         self.audio = LiteLLMAudio(config)
+        self.embeddings = OpenAICompatibleEmbeddings(
+            provider=config.provider,
+            api_key=config.api_key,
+            base_url=config.resolved_api_base,
+        )
 
 
 def build_litellm_openai_compatible_client(

@@ -39,6 +39,7 @@ from masterbrain.endpoints import (
 from masterbrain.endpoints.aira.router import aira_router
 from masterbrain.endpoints.code_edit.logic import shutdown_code_edit_runtime_manager
 from masterbrain.fastapi.provider_health import router as provider_health_router
+from masterbrain.fastapi.embeddings import router as embeddings_router
 from masterbrain.fastapi.usage import install_usage_context_middleware
 from masterbrain.utils.llm import llm_http_exception
 
@@ -64,6 +65,7 @@ app.add_middleware(
 ENDPOINTS_PREFIX = "/api/endpoints"
 
 app.include_router(provider_health_router, prefix="/api", tags=["Health"])
+app.include_router(embeddings_router, prefix=ENDPOINTS_PREFIX, tags=["Embeddings"])
 
 
 def _json_error_response(status_code: int, detail: object) -> JSONResponse:
