@@ -4,6 +4,18 @@
 
 ## Unreleased
 
+## v0.13.0
+
+### Added
+
+- Added the opt-in `prefer_client_assigners` setting to single-file Protocol generation and code editing. Capable hosts can prefer small deterministic calculations in `assigner runtime=client` blocks within `protocol.aimd`, while privileged, external and heavy computations remain server-side Python.
+- Shared runtime guidance across Protocol generation, editing, checking and debugging, with offline regression coverage in CI and release checks.
+
+### Compatibility
+
+- The new setting defaults to `false`, preserving server-side generation for older hosts. Existing runtime choices are preserved during editing, and the legacy `assigner.py` endpoint remains Python-only without duplicating inline outputs.
+- Hosts retain responsibility for permissions, execution, validation and user review. API/CSV imports do not execute browser calculations. The npm client contract update follows its independent Changesets release track.
+
 ## v0.12.0
 
 ### Added

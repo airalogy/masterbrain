@@ -4,6 +4,18 @@
 
 ## Unreleased
 
+## v0.13.0
+
+### 新增功能
+
+- 单文件 Protocol 生成和代码编辑新增可选的 `prefer_client_assigners` 设置。具备相应能力的宿主可将简单确定性计算优先生成在 `protocol.aimd` 的 `assigner runtime=client` 代码块中；涉及权限、外部服务或重型计算的逻辑仍使用服务端 Python。
+- Protocol 生成、编辑、检查和调试共享运行时指导，并将离线回归测试纳入 CI 和发布检查。
+
+### 兼容性
+
+- 新设置默认值为 `false`，旧宿主继续默认生成服务端计算。编辑时保留已有运行时选择，旧 `assigner.py` 接口仍只生成 Python，不重复定义已有内联输出。
+- 权限、执行、校验和用户审核仍由宿主负责；API/CSV 导入不会执行浏览器计算。npm 客户端契约更新走独立的 Changesets 发布流程。
+
 ## v0.12.0
 
 ### 新增功能
