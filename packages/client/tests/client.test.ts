@@ -68,7 +68,7 @@ describe('code edit contract', () => {
       };
     };
     expect(Object.keys(schema.request.properties).sort()).toEqual([
-      'active_file_path', 'chat_history', 'files', 'model', 'prompt', 'selection', 'workspace_id',
+      'active_file_path', 'chat_history', 'files', 'model', 'prefer_client_assigners', 'prompt', 'selection', 'workspace_id',
     ]);
     expect(Object.keys(schema.response.properties).sort()).toEqual([
       'change_set_id', 'changed_files', 'contract_version', 'edit_status', 'execution_log',

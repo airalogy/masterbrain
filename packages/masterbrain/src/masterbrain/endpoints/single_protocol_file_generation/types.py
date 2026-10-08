@@ -28,3 +28,4 @@ DEFAULT_MODEL = SupportedModels(
 class ProtocolMessage(BaseModel):
     use_model: SupportedModels = DEFAULT_MODEL
     instruction: str = Field(..., min_length=1)
+    prefer_client_assigners: bool = False

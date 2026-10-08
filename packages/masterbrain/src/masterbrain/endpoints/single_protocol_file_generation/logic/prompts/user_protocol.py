@@ -16,7 +16,7 @@ USER_MESSAGE_PROTOCOL_TAIL_TEMPLATE = """
 
 **第一步:提取变量** — 识别所有可测量/输入值,使用 {{var|name: type}} 注解。
 **第二步:识别派生变量** — 找出所有可由其他变量计算得出的值(公式、比值、百分比、分级判断、单位换算等),同样定义为 {{var|...}}。
-**第三步:生成assigner代码块** — 对第二步识别的**每一个**派生变量,必须在相关段落后紧跟一个 ```assigner 代码块。没有assigner的派生变量意味着协议不完整。
+**第三步:生成assigner代码块** — 宿主明确设置 prefer_client_assigners=true 时，简单确定性计算优先用 ```assigner runtime=client JavaScript 代码块，放在同一个 protocol.aimd 中；需要外部服务、科学计算库或服务端可信校验时用普通 ```assigner Python 代码块。宿主未开启时，新计算仍使用服务端 Python。不要重复定义输出。
 **第四步:自检** — 完成后扫描全文,如果存在依赖其他变量但缺少 ```assigner 代码块的变量,补上缺失的assigner。
 
 格式要求:
@@ -37,11 +37,12 @@ USER_MESSAGE_PROTOCOL_TAIL_TEMPLATE = """
 
 长径比：{{var|ratio: float}}
 判断标准：≥15为优...
-```assigner
-from airalogy.assigner import AssignerResult, assigner
-@assigner(assigned_fields=["ratio"], dependent_fields=["length", "thickness"], mode="auto")
-def calc_ratio(dep: dict) -> AssignerResult:
-    return AssignerResult(assigned_fields={"ratio": dep["length"] / dep["thickness"]})
+要求 thickness 的字段定义使用 gt=0，缺失观测值不得补零。
+```assigner runtime=client
+assigner(
+  {mode: "auto", dependent_fields: ["length", "thickness"], assigned_fields: ["ratio"]},
+  function calc_ratio({length, thickness}) { return {ratio: length / thickness}; }
+);
 ```
 不要只用文字描述公式而省略assigner代码块。
 """

@@ -37,6 +37,7 @@ from masterbrain.endpoints.code_edit.types import (
     CodeEditRisk,
 )
 from masterbrain.usage import UsageCallTracker, to_usage_mapping
+from masterbrain.protocol_authoring import ASSIGNER_RUNTIME_POLICY, assigner_host_context
 from masterbrain.utils.llm import ensure_model_api_key
 from masterbrain.utils.opencode import missing_opencode_message, resolve_opencode_binary
 
@@ -52,7 +53,7 @@ Rules:
 - Prefer modifying existing files over creating new ones. Do not create helper files.
 - Keep protocol.aimd valid AIMD. Variables should be declared with `{{var|name: Type}}` when a type is known.
 - Keep assigner logic compatible with Airalogy assigner syntax. In AIMD, assigner blocks are fenced with ```assigner ... ```. In standalone assigner.py, write the assigner code only, without Markdown fences.
-- Use the current module-level, function-based assigner syntax: `from airalogy.assigner import AssignerResult, assigner`, decorate plain functions with `@assigner(assigned_fields=[...], dependent_fields=[...], mode="auto")`, take a single `dependent_fields: dict` argument, and return `AssignerResult(assigned_fields={...})`. Do not use the deprecated `AssignerBase`, `class Assigner`, `@staticmethod`, or a `dependent_data` parameter. For Variable Table fields, reference them as `"table_name.subvar_name"`.
+- For server-side Python, use the current module-level, function-based assigner syntax: `from airalogy.assigner import AssignerResult, assigner`, decorate plain functions with `@assigner(assigned_fields=[...], dependent_fields=[...], mode="auto")`, take a single `dependent_fields: dict` argument, and return `AssignerResult(assigned_fields={...})`. Do not use the deprecated `AssignerBase`, `class Assigner`, `@staticmethod`, or a `dependent_data` parameter. For Variable Table fields, reference them as `"table_name.subvar_name"`.
 - Use assigners only to write derived fields. Every assigner must declare at least one assigned field, and every returned key must appear in `assigned_fields`. Never create a validation-only assigner, an assigner for `{{check|...}}`, or an assigner that only emits warnings. Use AIMD field constraints for input validation and `{{check|...}}` for procedural confirmations.
 - Keep model.py valid Python and aligned with fields referenced by protocol.aimd and assigner.py.
 - Keep protocol.toml valid TOML.
@@ -60,6 +61,8 @@ Rules:
 - Do not touch files outside the workspace.
 - End with a short plain-language summary of what you changed or why no file changes were needed.
 """
+
+SYSTEM_PROMPT += "\n\n" + ASSIGNER_RUNTIME_POLICY
 
 SUPPORTED_EDIT_SUFFIXES = {
     ".aimd": "aimd",
@@ -381,6 +384,7 @@ def build_code_edit_prompt(code_edit_input: CodeEditInput) -> str:
     prompt_lines = [
         "You are working inside a temporary workspace that mirrors the current browser editor state.",
         "Use the workspace files on disk instead of asking the user to paste code again.",
+        assigner_host_context(code_edit_input.prefer_client_assigners),
         "",
         "Editor context:",
         f"- Active file: {code_edit_input.active_file_path or 'none'}",

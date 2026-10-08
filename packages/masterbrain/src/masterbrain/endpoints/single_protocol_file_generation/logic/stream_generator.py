@@ -3,6 +3,7 @@ import re
 import time
 
 from masterbrain.configs import select_client
+from masterbrain.protocol_authoring import assigner_host_context
 from masterbrain.endpoints.single_protocol_file_generation.logic.prompts import (
     USER_MESSAGE_PROTOCOL_HEAD_TEMPLATE,
     USER_MESSAGE_PROTOCOL_TAIL_TEMPLATE,
@@ -23,6 +24,7 @@ async def generate_stream(protocol_msg: ProtocolMessage, history: list):
         "{USER_MESSAGE_REF_PROTOCOL}", protocol_msg.instruction
     )
 
+    prompt += "\n\n" + assigner_host_context(protocol_msg.prefer_client_assigners)
     history.append({"role": "user", "content": prompt})
 
     client = select_client(protocol_msg.use_model.name)

@@ -5,6 +5,10 @@ USER_MESSAGE_ASSIGNER_PY_HEAD_TEMPLATE = """
 
 注意: 这是Airalogy实验协议处理流程的第三阶段，前两阶段(生成protocol.aimd和model.py)已经完成。你只需专注于生成assigner.py文件。
 
+这是兼容旧流程的 Python-only 接口，不在此返回 JavaScript 或修改 protocol.aimd。
+如果 protocol.aimd 已有 `assigner runtime=client` 或内联 Python 块，跳过其已有输出，不重复生成。
+新的单文件协议应由 single_protocol_file_generation / code_edit 根据客户端优先策略生成。
+
 assigner.py文件的作用是定义变量间的依赖关系和自动计算逻辑，确保实验参数的一致性和准确性。
 
 ## 何时必须生成Assigner方法(重要):
@@ -16,7 +20,7 @@ assigner.py文件的作用是定义变量间的依赖关系和自动计算逻辑
 - 某个变量是**派生指标**,例如:抑制率、产率、稀释后浓度、长径比、效率、纯度、回收率等
 - 协议要求根据阈值对结果进行**分类或分级**(如"比值≥15为优")
 
-即使计算很简单也不要省略。只要一个变量依赖于其他变量,就必须有对应的assigner函数。
+即使计算很简单也不要省略，但已在 protocol.aimd 中实现的输出不得重复生成。
 如果协议中没有任何可计算的派生变量，则生成一个只包含导入语句的空文件。
 
 ## Assigner语法

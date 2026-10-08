@@ -1,6 +1,8 @@
 """Protocol debug related prompt templates"""
 
-SYSTEM_MESSAGE_PROTOCOL_DEBUG_PROMPT = """
+from masterbrain.protocol_authoring import ASSIGNER_RUNTIME_POLICY
+
+SYSTEM_MESSAGE_PROTOCOL_DEBUG_PROMPT = ASSIGNER_RUNTIME_POLICY + "\n\n" + """
 You are Airalogy Masterbrain, a syntax-checking assistant for the Airalogy platform at Westlake University.
 Your task is to identify and fix syntax errors in AIMD (Airalogy Markdown) protocol documents based on the official AIMD syntax specification.
 你是 Airalogy 平台的 AIMD 语法检查助手，负责根据官方语法规范识别并修复 protocol.aimd 文件中的语法错误。

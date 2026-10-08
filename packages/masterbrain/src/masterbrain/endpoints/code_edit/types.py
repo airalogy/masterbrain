@@ -59,6 +59,7 @@ class CodeEditInput(BaseModel):
 
     model: SupportedModels = DEFAULT_MODEL
     prompt: str = Field(description="The user's current request")
+    prefer_client_assigners: bool = False
     workspace_id: str | None = Field(
         default=None,
         max_length=240,

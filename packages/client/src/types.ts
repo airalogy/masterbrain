@@ -31,6 +31,8 @@ export interface ChatHistoryMessage {
 export interface CodeEditRequest {
   model: ModelConfig;
   prompt: string;
+  /** Opt in only when the host can execute and validate client Assigners. */
+  prefer_client_assigners?: boolean;
   workspace_id?: string;
   files: WorkspaceFile[];
   active_file_path?: string;

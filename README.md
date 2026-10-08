@@ -29,6 +29,12 @@ For PyPI release automation, see [`RELEASING.md`](./RELEASING.md).
 
 ## Quick Start
 
+### Protocol authoring runtime preference
+
+Hosts with client Assigner execution and validation can opt in with `prefer_client_assigners: true` on single-file generation and code-edit requests. Small deterministic calculations then prefer `assigner runtime=client` blocks in `protocol.aimd`; privileged, heavy or externally connected work remains server Python. The default is `false` for older hosts. The legacy `assigner.py` generation endpoint stays Python-only and must not duplicate existing inline outputs. Generated code still requires host validation and user review; CSV/API imports do not execute browser calculations.
+
+### Start the app
+
 Build the frontend once:
 
 ```shell

@@ -29,6 +29,12 @@ PyPI 自动发布流程见 [`RELEASING.zh-CN.md`](./RELEASING.zh-CN.md)。
 
 ## 快速开始
 
+### Protocol 编写的运行时偏好
+
+具备客户端 Assigner 执行和校验能力的宿主，可在单文件生成、代码编辑请求中设置 `prefer_client_assigners: true`。简单确定性计算优先放入 `protocol.aimd` 的 `assigner runtime=client` 代码块；有权限要求、重型计算或连接外部服务的逻辑仍使用服务端 Python。为兼容旧宿主，默认值为 `false`。旧的 `assigner.py` 生成接口仍只输出 Python，不重复生成已有内联输出。生成代码仍须宿主校验与用户审核；CSV/API 导入不会执行浏览器计算。
+
+### 启动应用
+
 先构建一次前端：
 
 ```shell

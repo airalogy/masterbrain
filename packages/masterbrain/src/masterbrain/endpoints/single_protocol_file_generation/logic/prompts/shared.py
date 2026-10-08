@@ -1,3 +1,6 @@
+from masterbrain.protocol_authoring import ASSIGNER_RUNTIME_POLICY
+
+
 COMMON_OUTPUT_RULES = """
 ## Output Rules
 
@@ -26,7 +29,8 @@ AIMD has exactly two kinds of special syntax. Do not invent or mix them:
 - `{{cite|...}}` — cite a reference
 
 **2. Code fence blocks** — written as fenced code blocks using triple backticks:
-- ` ```assigner ` — embedded Python assigner code
+- ` ```assigner runtime=client ` — small deterministic JavaScript calculations, preferred when the host opts in
+- ` ```assigner ` — embedded server-side Python assigner code
 - ` ```quiz ` — interactive quiz (YAML)
 - ` ```fig ` — figure definition (YAML)
 - ` ```refs ` — bibliography in BibTeX format
@@ -140,23 +144,17 @@ COMMON_BLOCK_SPEC = """
 
 ### Embedded Assigner Blocks
 
-Use ` ```assigner ` code fences for assigner blocks. Do NOT use template tags like `{{assigner|...}}`.
+Use assigner code fences with the runtime selected below. Do NOT use template tags like `{{assigner|...}}`.
 
 Whenever a variable can be derived from other variables, you must generate an inline assigner block immediately after the relevant section:
 
-```assigner
-from airalogy.assigner import AssignerResult, assigner
-
-@assigner(
-    assigned_fields=["calculated_field"],
-    dependent_fields=["input_field_1", "input_field_2"],
-    mode="auto",
-)
-def calculate_function_name(dep: dict) -> AssignerResult:
-    result = dep["input_field_1"] + dep["input_field_2"]
-    return AssignerResult(
-        assigned_fields={"calculated_field": result},
-    )
+```assigner runtime=client
+assigner(
+  {mode: "auto", dependent_fields: ["input_field_1", "input_field_2"], assigned_fields: ["calculated_field"]},
+  function calculate_sum({input_field_1, input_field_2}) {
+    return {calculated_field: input_field_1 + input_field_2};
+  }
+);
 ```
 
 Generate an assigner block whenever any of the following is true:
@@ -170,7 +168,7 @@ Do not omit an assigner block just because the calculation looks simple.
 An assigner is only for writing one or more derived `{{var|...}}` fields. Never use an
 assigner to validate user input, implement a `{{check|...}}`, or emit warnings without
 writing a field. Every assigner must have a non-empty `assigned_fields` list, and every
-key returned in `AssignerResult.assigned_fields` must appear in that list. Express input
+key returned by the client function (or in Python `AssignerResult.assigned_fields`) must appear in that list. Express input
 constraints with variable metadata such as `ge`, `gt`, `le`, `lt`, `pattern`, or
 `required`; express procedural confirmations with `{{check|...}}`.
 
@@ -228,6 +226,9 @@ Reference a figure inline with `{{ref_fig|fig1}}`.
 """.strip()
 
 
+COMMON_BLOCK_SPEC = ASSIGNER_RUNTIME_POLICY + "\n\n" + COMMON_BLOCK_SPEC
+
+
 REFERENCE_PROTOCOL_EXAMPLE = """
 ## Reference Example
 
@@ -262,21 +263,13 @@ Incubate for {{var|treatment_duration: float = 24}} h.
 
 Total drug per well (nmol): {{var|drug_per_well_nmol: float, title = "Drug Amount Per Well"}}
 
-```assigner
-from airalogy.assigner import AssignerResult, assigner
-
-@assigner(
-    assigned_fields=["drug_per_well_nmol"],
-    dependent_fields=["drug_concentration"],
-    mode="auto",
-)
-def calculate_drug_per_well(dep: dict) -> AssignerResult:
-    concentration_uM = dep["drug_concentration"]
-    volume_mL = 0.1  # 100 μL per well
-    drug_nmol = concentration_uM * volume_mL
-    return AssignerResult(
-        assigned_fields={"drug_per_well_nmol": round(drug_nmol, 2)},
-    )
+```assigner runtime=client
+assigner(
+  {mode: "auto", dependent_fields: ["drug_concentration"], assigned_fields: ["drug_per_well_nmol"]},
+  function calculate_drug_per_well({drug_concentration}) {
+    return {drug_per_well_nmol: drug_concentration * 0.1};
+  }
+);
 ```
 
 {{step|cell_viability_assay}} Cell Viability Assay.
@@ -288,27 +281,19 @@ Record the optical density (OD) readings for each sample:
 {{step|calculate_inhibition_rate}} Calculate Inhibition Rate.
 
 Based on the OD data from {{ref_step|cell_viability_assay}}:
-- Average Control Group OD: {{var|avg_control_od: float, title = "Average Control OD"}}
+- Average Control Group OD: {{var|avg_control_od: float, title = "Average Control OD", gt=0}}
 - Average Treatment Group OD: {{var|avg_treatment_od: float, title = "Average Treatment OD"}}
 
 Inhibition Rate (%): {{var|inhibition_rate: float}}
 Formula: Inhibition Rate = [1 - (Average Treatment OD ÷ Average Control OD)] × 100%
 
-```assigner
-from airalogy.assigner import AssignerResult, assigner
-
-@assigner(
-    assigned_fields=["inhibition_rate"],
-    dependent_fields=["avg_control_od", "avg_treatment_od"],
-    mode="auto",
-)
-def calculate_inhibition_rate(dep: dict) -> AssignerResult:
-    avg_control_od = dep["avg_control_od"]
-    avg_treatment_od = dep["avg_treatment_od"]
-    inhibition_rate = (1 - (avg_treatment_od / avg_control_od)) * 100
-    return AssignerResult(
-        assigned_fields={"inhibition_rate": round(inhibition_rate, 2)},
-    )
+```assigner runtime=client
+assigner(
+  {mode: "auto", dependent_fields: ["avg_control_od", "avg_treatment_od"], assigned_fields: ["inhibition_rate"]},
+  function calculate_inhibition_rate({avg_control_od, avg_treatment_od}) {
+    return {inhibition_rate: (1 - avg_treatment_od / avg_control_od) * 100};
+  }
+);
 ```
 
 ============================

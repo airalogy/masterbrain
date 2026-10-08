@@ -149,6 +149,11 @@
           "name": "qwen3.5-flash"
         }
       },
+      "prefer_client_assigners": {
+        "default": false,
+        "title": "Prefer Client Assigners",
+        "type": "boolean"
+      },
       "prompt": {
         "description": "The user's current request",
         "title": "Prompt",
