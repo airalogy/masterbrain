@@ -1,6 +1,6 @@
 {
   "name": "@airalogy/masterbrain-client",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Framework-neutral client and workspace change contract for Masterbrain",
   "repository": {
     "type": "git",

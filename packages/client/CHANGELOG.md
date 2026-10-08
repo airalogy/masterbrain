@@ -1,5 +1,11 @@
 # @airalogy/masterbrain-client
 
+## 0.1.1
+
+### Patch Changes
+
+- f6c7221: Expose the optional client Assigner preference in code-edit requests. Hosts that omit it keep server-side generation for new calculations.
+
 ## 0.1.0
 
 ### Minor Changes

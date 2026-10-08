@@ -1,5 +1,12 @@
 # @airalogy/masterbrain-vue
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [f6c7221]
+  - @airalogy/masterbrain-client@0.1.1
+
 ## 0.2.0
 
 ### Minor Changes

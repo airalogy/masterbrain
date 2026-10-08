@@ -1,6 +1,6 @@
 {
   "name": "@airalogy/masterbrain-vue",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Vue composables and UI primitives for Masterbrain-assisted workspace editing",
   "repository": {
     "type": "git",
@@ -37,7 +37,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@airalogy/masterbrain-client": "0.1.0"
+    "@airalogy/masterbrain-client": "0.1.1"
   },
   "peerDependencies": {
     "monaco-editor": ">=0.52.0",
